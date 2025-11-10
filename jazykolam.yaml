@@ -1,5 +1,5 @@
 
-# v1.3.2
+# v1.3.3
 enabled: true
 default_locale: ''
 prefer_languages_yaml: true
@@ -11,12 +11,13 @@ auto_override:
 
 # Debug settings
 debug:
-  enabled: false          # true to always enable debug markers
+  enabled: false          # Admin toggle (Grav Admin → Plugins → Jazykolam → Debug)
   mode: inline            # inline | wrap
-  marker_prefix: '‹JL:'   # used in inline mode
+  marker_prefix: '‹JL:'
   marker_suffix: '›'
-  badge: 'JL'             # small badge after the string
-  max_entries: 200        # collected entries for debug panel
+  badge: 'JL'
+  max_entries: 200
+  console: false          # export table to browser console
 
 locales:
   en:

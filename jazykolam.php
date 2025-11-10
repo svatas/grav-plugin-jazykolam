@@ -68,6 +68,7 @@ class JazykolamPlugin extends Plugin
             $renderer->addFunction(new \Twig\TwigFunction('jazykolam_set_locale', [$ext, 'setLocaleFunction']));
             $renderer->addFunction(new \Twig\TwigFunction('jazykolam_debug', [$ext, 'debugFunction'], ['is_safe' => ['html']]));
             $renderer->addFunction(new \Twig\TwigFunction('jazykolam_debug_panel', [$ext, 'debugPanelFunction'], ['is_safe' => ['html']]));
+            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_debug_console', [$ext, 'debugConsoleFunction'], ['is_safe' => ['html']]));
         } catch (\Throwable $e) {
             // ignore
         }
