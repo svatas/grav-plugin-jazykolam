@@ -16,3 +16,4 @@ aby tyto funkce bylo možné postupně aktivovat bez změny základní struktury
 
 
 - 1.6.2: první veřejná verze inline editoru (experimentální, pouze pro adminy s parametrem ?jazykolam_inline=1).
+- 1.6.3: rozšířený Admin Translation Manager (filtrování, chybějící klíče, přidání nových klíčů, zálohy před uložením).
