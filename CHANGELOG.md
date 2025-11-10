@@ -1,6 +1,10 @@
 
 # Changelog
 
+## 1.1.0 - 2025-11-07
+- New: `jazykolam_time` Twig filter for human-friendly relative time (past/future)
+- Locale-configurable phrases with `user/languages.yaml` overrides
+
 ## 1.0.0 - 2025-11-07
 - Initial release with Twig filters: `jazykolam_plural`, `jazykolam_month`
 - Configurable locales (en, cs preloaded; pl basic)

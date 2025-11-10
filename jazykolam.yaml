@@ -37,6 +37,52 @@ locales:
         10: Oct
         11: Nov
         12: Dec
+    relative:
+      now: just now
+      past:
+        second:
+          one: a second ago
+          other: {{count}} seconds ago
+        minute:
+          one: a minute ago
+          other: {{count}} minutes ago
+        hour:
+          one: an hour ago
+          other: {{count}} hours ago
+        day:
+          one: a day ago
+          other: {{count}} days ago
+        week:
+          one: a week ago
+          other: {{count}} weeks ago
+        month:
+          one: a month ago
+          other: {{count}} months ago
+        year:
+          one: a year ago
+          other: {{count}} years ago
+      future:
+        second:
+          one: in a second
+          other: in {{count}} seconds
+        minute:
+          one: in a minute
+          other: in {{count}} minutes
+        hour:
+          one: in an hour
+          other: in {{count}} hours
+        day:
+          one: in a day
+          other: in {{count}} days
+        week:
+          one: in a week
+          other: in {{count}} weeks
+        month:
+          one: in a month
+          other: in {{count}} months
+        year:
+          one: in a year
+          other: in {{count}} years
   cs:
     plural:
       order: [one, few, other]
@@ -80,6 +126,66 @@ locales:
         10: října
         11: listopadu
         12: prosince
+    relative:
+      now: právě teď
+      past:
+        second:
+          one: sekundou
+          few: {{count}} sekundami
+          other: {{count}} sekundami
+        minute:
+          one: minutou
+          few: {{count}} minutami
+          other: {{count}} minutami
+        hour:
+          one: hodinou
+          few: {{count}} hodinami
+          other: {{count}} hodinami
+        day:
+          one: včera
+          few: {{count}} dny
+          other: {{count}} dny
+        week:
+          one: týdnem
+          few: {{count}} týdny
+          other: {{count}} týdny
+        month:
+          one: měsícem
+          few: {{count}} měsíci
+          other: {{count}} měsíci
+        year:
+          one: rokem
+          few: {{count}} roky
+          other: {{count}} lety
+      future:
+        second:
+          one: sekundu
+          few: {{count}} sekundy
+          other: {{count}} sekund
+        minute:
+          one: minutu
+          few: {{count}} minuty
+          other: {{count}} minut
+        hour:
+          one: hodinu
+          few: {{count}} hodiny
+          other: {{count}} hodin
+        day:
+          one: zítra
+          few: {{count}} dny
+          other: {{count}} dní
+        week:
+          one: týden
+          few: {{count}} týdny
+          other: {{count}} týdnů
+        month:
+          one: měsíc
+          few: {{count}} měsíce
+          other: {{count}} měsíců
+        year:
+          one: rok
+          few: {{count}} roky
+          other: {{count}} let
   pl:
     plural:
       order: [one, few, many, other]

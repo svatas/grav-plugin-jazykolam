@@ -2,7 +2,7 @@
 {
   "name": "svatopluk/grav-plugin-jazykolam",
   "type": "grav-plugin",
-  "description": "Advanced i18n Twig filters for Grav (pluralization, months)",
+  "description": "Advanced i18n Twig filters for Grav (pluralization, months, relative time)",
   "license": "MIT",
   "require": {
     "php": ">=7.4"

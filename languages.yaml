@@ -3,28 +3,36 @@ en:
   PLUGINS:
     JAZYKOLAM:
       NAME: Jazykolam
-      DESCRIPTION: Advanced i18n filters (pluralization, months) for Twig
+      DESCRIPTION: Advanced i18n filters (pluralization, months, relative time) for Twig
   JAZYKOLAM:
-    # Example keys users can override in their site languages.yaml
-    # MONTH:
-    #   LONG:
-    #     1: January
-    #   SHORT:
-    #     1: Jan
-    #   GENITIVE:
-    #     1: of January
+    # Example override keys for relative time
+    # RELATIVE:
+    #   NOW: just now
+    #   PAST:
+    #     MINUTE:
+    #       one: a minute ago
+    #       other: {{count}} minutes ago
+    #   FUTURE:
+    #     DAY:
+    #       one: tomorrow
+    #       other: in {{count}} days
 
 cs:
   PLUGINS:
     JAZYKOLAM:
       NAME: Jazykolam
-      DESCRIPTION: Pokročilé i18n filtry (plurály, měsíce) pro Twig
+      DESCRIPTION: Pokročilé i18n filtry (plurály, měsíce, časové výrazy) pro Twig
   JAZYKOLAM:
-    # Příklady klíčů pro override v site/languages.yaml
-    # MONTH:
-    #   LONG:
-    #     1: leden
-    #   SHORT:
-    #     1: led
-    #   GENITIVE:
-    #     1: ledna
+    # Příklady override klíčů pro časové výrazy
+    # RELATIVE:
+    #   NOW: právě teď
+    #   PAST:
+    #     HOUR:
+    #       one: hodinou
+    #       few: {{count}} hodinami
+    #       other: {{count}} hodinami
+    #   FUTURE:
+    #     DAY:
+    #       one: zítra
+    #       few: {{count}} dny
+    #       other: {{count}} dní

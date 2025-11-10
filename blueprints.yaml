@@ -2,15 +2,15 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.0.0	schema: 1.0.0
-description: Advanced i18n filters (pluralization, months) for Twig.
+version: 1.1.0	schema: 1.0.0
+description: Advanced i18n filters (pluralization, months, relative time) for Twig.
 icon: language
 author:
   name: Svatopluk Vít
   email: example@example.com
   url: https://example.com
 homepage: https://example.com/grav-plugin-jazykolam
-keywords: grav, plugin, i18n, pluralization, months, localization
+keywords: grav, plugin, i18n, pluralization, months, localization, timeago
 bugs: https://example.com/grav-plugin-jazykolam/issues
 license: MIT
 

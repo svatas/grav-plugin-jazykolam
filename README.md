@@ -1,14 +1,14 @@
 
 # Jazykolam
 
-> Advanced i18n filters for Grav Twig – pluralization & months – without touching Grav core.
+> Advanced i18n filters for Grav Twig – pluralization, months & relative time – without touching Grav core.
 
-**Jazykolam** ("tongue twister" in Czech) brings configurable plural rules and localized month names
-as easy-to-use Twig filters. It is locale-agnostic and ships defaults for English and Czech, with
-room to add more (e.g., Polish, French, Russian).
+**Jazykolam** ("tongue twister" in Czech) brings configurable plural rules, localized month names
+and human-friendly relative time. Locale-agnostic defaults are provided for English and Czech.
 
 - `|jazykolam_plural` — Pick the right plural form for any language.
-- `|jazykolam_month` — Get localized month names in long/short (and genitive where applicable).
+- `|jazykolam_month` — Localized month names in long/short (and genitive where applicable).
+- `|jazykolam_time` — Human-friendly relative time ("just now", "3 days ago", "in 2 hours").
 
 ## Installation
 
@@ -17,105 +17,85 @@ room to add more (e.g., Polish, French, Russian).
 
 ## Configuration
 
-`user/config/plugins/jazykolam.yaml` (defaults shown):
+`user/config/plugins/jazykolam.yaml` (snippet):
 
 ```yaml
 enabled: true
-default_locale: ''           # empty = use active Grav language
-prefer_languages_yaml: true  # if true, values from site languages.yaml win
+default_locale: ''
+prefer_languages_yaml: true
 locales:
   en:
     plural: { order: [one, other] }
-    months:
-      long:   { 1: January, 2: February, 3: March, 4: April, 5: May, 6: June, 7: July, 8: August, 9: September, 10: October, 11: November, 12: December }
-      short:  { 1: Jan, 2: Feb, 3: Mar, 4: Apr, 5: May, 6: Jun, 7: Jul, 8: Aug, 9: Sep, 10: Oct, 11: Nov, 12: Dec }
+    months: { ... }
+    relative:
+      now: just now
+      past:
+        minute: { one: a minute ago, other: '{{count}} minutes ago' }
+      future:
+        minute: { one: in a minute, other: 'in {{count}} minutes' }
   cs:
     plural: { order: [one, few, other] }
-    months:
-      long:   { 1: leden, 2: únor, 3: březen, 4: duben, 5: květen, 6: červen, 7: červenec, 8: srpen, 9: září, 10: říjen, 11: listopad, 12: prosinec }
-      short:  { 1: led, 2: úno, 3: bře, 4: dub, 5: kvě, 6: čvn, 7: čvc, 8: srp, 9: zář, 10: říj, 11: lis, 12: pro }
-      genitive: { 1: ledna, 2: února, 3: března, 4: dubna, 5: května, 6: června, 7: července, 8: srpna, 9: září, 10: října, 11: listopadu, 12: prosince }
+    months: { ... }
+    relative:
+      now: právě teď
+      past:
+        hour: { one: hodinou, few: '{{count}} hodinami', other: '{{count}} hodinami' }
+      future:
+        day: { one: zítra, few: '{{count}} dny', other: '{{count}} dní' }
 ```
 
-> You can override month names or provide plural strings in your **site `user/languages.yaml`**. See examples below.
+> You can override any piece via **`user/languages.yaml`** under `JAZYKOLAM.RELATIVE.*` keys.
 
 ## Usage
 
 ### 1) Pluralization — `|jazykolam_plural`
-
-**By array (locale order)**
-
-```twig
-{# Czech: order is [one, few, other] #}
-{{ 1|jazykolam_plural(['soubor','soubory','souborů']) }}   {# soubor #}
-{{ 3|jazykolam_plural(['soubor','soubory','souborů']) }}   {# soubory #}
-{{ 5|jazykolam_plural(['soubor','soubory','souborů']) }}   {# souborů #}
-
-{# English: order is [one, other] #}
-{{ 1|jazykolam_plural(['file','files'],'en') }}             {# file #}
-{{ 2|jazykolam_plural(['file','files'],'en') }}             {# files #}
-```
-
-**By map (named categories)**
-
-```twig
-{{ total|jazykolam_plural({'one':'%d item','other':'%d items'}) }}
-{{ n|jazykolam_plural({'one':'{{count}} soubor','few':'{{count}} soubory','other':'{{count}} souborů'}, 'cs') }}
-```
-
-**By translation key (site languages.yaml)**
-
-```yaml
-# user/languages.yaml
-cs:
-  JAZYKOLAM:
-    FILE:
-      one: soubor
-      few: soubory
-      other: souborů
-```
-
-```twig
-{{ count|jazykolam_plural('JAZYKOLAM.FILE') }}
-```
+(see below for details)
 
 ### 2) Months — `|jazykolam_month`
+(see below for details)
+
+### 3) Relative time — `|jazykolam_time`
 
 ```twig
-{{ 3|jazykolam_month }}                       {# March (active locale) #}
-{{ 11|jazykolam_month('short', 'cs') }}       {# lis #}
-{{ 11|jazykolam_month('genitive','cs') }}     {# listopadu #}
+{{ page.date|jazykolam_time }}                    {# based on active locale #}
+{{ '2025-11-07 14:00'|jazykolam_time('en') }}     {# e.g., 1 hour ago #}
+{{ (-90)|jazykolam_time('cs') }}                   {# před 1 minutou (≈) #}
+{{ (7200)|jazykolam_time('cs') }}                  {# za 2 hodiny #}
 
-{# languages.yaml overrides: #}
-{# user/languages.yaml #}
+{# Override reference "now" #}
+{{ page.date|jazykolam_time('cs', '2025-11-07 12:00:00') }}
+```
+
+**How it formats**
+
+- Under ~45 seconds → `now` string (e.g., `just now` / `právě teď`).
+- Otherwise, picks the largest meaningful unit among `second, minute, hour, day, week, month, year`.
+- Chooses plural category by locale (`one/few/many/other`).
+- Builds phrase from either **`user/languages.yaml`** or plugin config.
+
+### Override via `user/languages.yaml`
+
+```yaml
 cs:
   JAZYKOLAM:
-    MONTH:
-      LONG:
-        1: Leden (kapitálky)
+    RELATIVE:
+      NOW: právě teď (teď hned!)
+      PAST:
+        MINUTE:
+          one: minutou
+          few: {{count}} minutami
+          other: {{count}} minutami
+      FUTURE:
+        DAY:
+          one: zítra
+          few: {{count}} dny
+          other: {{count}} dní
 ```
-
-```twig
-{{ 1|jazykolam_month('long','cs') }}  {# Leden (kapitálky) #}
-```
-
-### Placeholders
-
-- In plural strings you may use `{{count}}` or `%d` to insert the numeric value.
 
 ## Tested locales
 
-- **English (en):** `one/other`
-- **Czech (cs) & Slovak (sk):** `one/few/other`
-- **Polish (pl):** `one/few/many/other` (rules simplified but CLDR-compatible in spirit)
-- **French (fr) & others:** fall back to common two-form model unless configured
-
-> You can extend `locales:` in the plugin config and the plural filter will honor the provided order.
-
-## Why another i18n plugin?
-
-Grav already supports translations via `languages.yaml`, but grammar-driven selections (plural categories, genitive months)
-usually require custom logic in Twig. **Jazykolam** centralizes that logic behind clean filters and lets you keep content in translations.
+- **English (en):** relative time phrases + plural `one/other`
+- **Czech (cs):** relative time with case-aware forms for past/future (`před X`, `za X`)
 
 ## License
 

@@ -9,7 +9,7 @@ use Grav\Common\Twig\Twig;
 
 /**
  * Jazykolam Plugin
- * Advanced i18n helpers (pluralization, months) as Twig filters
+ * Advanced i18n helpers (pluralization, months, relative time) as Twig filters
  */
 class JazykolamPlugin extends Plugin
 {
