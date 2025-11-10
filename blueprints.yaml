@@ -1,0 +1,44 @@
+
+name: Jazykolam
+slug: jazykolam
+type: plugin
+version: 1.0.0	schema: 1.0.0
+description: Advanced i18n filters (pluralization, months) for Twig.
+icon: language
+author:
+  name: Svatopluk Vít
+  email: example@example.com
+  url: https://example.com
+homepage: https://example.com/grav-plugin-jazykolam
+keywords: grav, plugin, i18n, pluralization, months, localization
+bugs: https://example.com/grav-plugin-jazykolam/issues
+license: MIT
+
+form:
+  validation: strict
+  fields:
+    enabled:
+      type: toggle
+      label: Plugin status
+      highlight: 1
+      default: 1
+      options:
+        1: Enabled
+        0: Disabled
+      validate:
+        type: bool
+
+    default_locale:
+      type: text
+      label: Default locale (leave empty for active language)
+      placeholder: cs
+
+    prefer_languages_yaml:
+      type: toggle
+      label: Prefer site languages.yaml overrides
+      highlight: 1
+      default: 1
+      options:
+        1: Yes
+        0: No
+

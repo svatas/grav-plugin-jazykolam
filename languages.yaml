@@ -1,0 +1,30 @@
+
+en:
+  PLUGINS:
+    JAZYKOLAM:
+      NAME: Jazykolam
+      DESCRIPTION: Advanced i18n filters (pluralization, months) for Twig
+  JAZYKOLAM:
+    # Example keys users can override in their site languages.yaml
+    # MONTH:
+    #   LONG:
+    #     1: January
+    #   SHORT:
+    #     1: Jan
+    #   GENITIVE:
+    #     1: of January
+
+cs:
+  PLUGINS:
+    JAZYKOLAM:
+      NAME: Jazykolam
+      DESCRIPTION: Pokročilé i18n filtry (plurály, měsíce) pro Twig
+  JAZYKOLAM:
+    # Příklady klíčů pro override v site/languages.yaml
+    # MONTH:
+    #   LONG:
+    #     1: leden
+    #   SHORT:
+    #     1: led
+    #   GENITIVE:
+    #     1: ledna

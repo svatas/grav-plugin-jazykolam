@@ -1,0 +1,15 @@
+
+{
+  "name": "svatopluk/grav-plugin-jazykolam",
+  "type": "grav-plugin",
+  "description": "Advanced i18n Twig filters for Grav (pluralization, months)",
+  "license": "MIT",
+  "require": {
+    "php": ">=7.4"
+  },
+  "extra": {
+    "grav-installer": {
+      "install-path": "user/plugins/{$name}/"
+    }
+  }
+}
