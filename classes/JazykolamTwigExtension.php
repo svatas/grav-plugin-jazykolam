@@ -27,51 +27,40 @@ class JazykolamTwigExtension extends AbstractExtension
     {
         return [
             new TwigFilter('jazykolam_plural', [$this, 'pluralFilter']),
-            new TwigFilter('jazykolam_month', [$this, 'monthFilter'])
+            new TwigFilter('jazykolam_month', [$this, 'monthFilter']),
+            new TwigFilter('jazykolam_time', [$this, 'timeFilter'])
         ];
     }
 
     /**
      * Twig filter: selects proper plural form based on locale rules.
-     *
-     * Usage examples:
-     *   {{ count|jazykolam_plural(['soubor','soubory','souborů']) }}
-     *   {{ count|jazykolam_plural({'one':'file','other':'files'}, 'en') }}
-     *   {{ count|jazykolam_plural('JAZYKOLAM.FILE') }}  {# will lookup JAZYKOLAM.FILE.<category> in languages.yaml #}
-     *
      * @param int|float $count
-     * @param array|string $forms  Either [..] in locale order, or {category:form}, or translation key prefix
-     * @param string|null $locale  Optional override locale (e.g., 'cs'). Defaults to active language.
-     * @return string
+     * @param array|string $forms
+     * @param string|null $locale
      */
     public function pluralFilter($count, $forms, ?string $locale = null): string
     {
         $locale = $locale ?: $this->getActiveLocale();
         $category = $this->pluralCategory($locale, (float)$count);
 
-        // If forms provided as translation key, fetch via languages.yaml
         if (is_string($forms)) {
             $key = $forms . '.' . $category;
             $translated = $this->translate($key, [$count]);
             if ($translated !== $key) {
                 return $translated;
             }
-            // Fallback chain through common categories
             foreach (['other','many','few','one'] as $fallback) {
                 $fk = $forms . '.' . $fallback;
                 $t = $this->translate($fk, [$count]);
                 if ($t !== $fk) { return $t; }
             }
-            // Could not resolve key – return raw key as last resort
             return (string)$forms;
         }
 
-        // If associative forms map
         if (is_array($forms) && array_keys($forms) !== range(0, count($forms) - 1)) {
             if (isset($forms[$category])) {
                 return $this->interpolate($forms[$category], $count);
             }
-            // try fallbacks
             foreach (['other','many','few','one'] as $fallback) {
                 if (isset($forms[$fallback])) {
                     return $this->interpolate($forms[$fallback], $count);
@@ -79,33 +68,23 @@ class JazykolamTwigExtension extends AbstractExtension
             }
         }
 
-        // If indexed forms array, map by locale-specific order
         if (is_array($forms)) {
             $order = $this->pluralOrder($locale);
             $idx = array_search($category, $order, true);
             if ($idx !== false && isset($forms[$idx])) {
                 return $this->interpolate($forms[$idx], $count);
             }
-            // fallback to last provided form
             return $this->interpolate(end($forms), $count);
         }
 
-        // Unknown forms type
         return (string)$forms;
     }
 
     /**
      * Twig filter: returns localized month name.
-     *
-     * Usage examples:
-     *   {{ 3|jazykolam_month }}                     => March (default long)
-     *   {{ 3|jazykolam_month('short') }}           => Mar
-     *   {{ '2025-11-07'|date('n')|jazykolam_month('genitive','cs') }} => listopadu
-     *
-     * @param int|string|\DateTimeInterface $value  Month number (1-12) or any string/int castable to month number
-     * @param string $form  One of: long, short, genitive (if supported)
+     * @param int|string|\DateTimeInterface $value
+     * @param string $form
      * @param string|null $locale
-     * @return string
      */
     public function monthFilter($value, string $form = 'long', ?string $locale = null): string
     {
@@ -115,14 +94,12 @@ class JazykolamTwigExtension extends AbstractExtension
             return '';
         }
 
-        // 1) Try languages.yaml overrides: JAZYKOLAM.MONTH.<FORM>.<N>
         $key = sprintf('JAZYKOLAM.MONTH.%s.%d', strtoupper($form), $month);
         $translated = $this->translate($key);
         if ($translated !== $key) {
             return $translated;
         }
 
-        // 2) Try plugin config tables
         $months = (array)($this->config['locales'][$locale]['months'] ?? []);
         if (!$months && strpos($locale, '-') !== false) {
             $base = substr($locale, 0, 2);
@@ -133,7 +110,6 @@ class JazykolamTwigExtension extends AbstractExtension
             return (string)$months[$form][$month];
         }
 
-        // 3) Fallback to English
         $months = (array)($this->config['locales']['en']['months'] ?? []);
         if (isset($months[$form][$month])) {
             return (string)$months[$form][$month];
@@ -143,43 +119,168 @@ class JazykolamTwigExtension extends AbstractExtension
     }
 
     /**
-     * Determine plural category for given locale and count, following simplified CLDR-like rules.
+     * Twig filter: human-friendly relative time (past/future).
+     * Accepts DateTime, ISO string, UNIX timestamp, or seconds delta (int/float).
+     *
+     * Usage:
+     *   {{ page.date|jazykolam_time }}
+     *   {{ '2025-11-07T15:00:00'|jazykolam_time('cs') }}
+     *   {{ (-3600)|jazykolam_time('en') }}            {# 1 hour ago #}
+     *   {{ (7200)|jazykolam_time('cs') }}             {# za 2 hodiny #}
+     *   {{ post.date|jazykolam_time('cs', '2025-11-07 12:00:00') }} {# custom now #}
+     *
+     * @param mixed $value  target time or seconds delta (future positive)
+     * @param string|null $locale  locale override
+     * @param mixed $now  reference time (DateTime|string|int timestamp)
      */
+    public function timeFilter($value, ?string $locale = null, $now = null): string
+    {
+        $locale = $locale ?: $this->getActiveLocale();
+        $nowTs = $this->toTimestamp($now ?? 'now');
+        $delta = $this->valueToDeltaSeconds($value, $nowTs);
+
+        $abs = abs($delta);
+        // "now" threshold ~ under 45 seconds
+        if ($abs < 45) {
+            // Try translation key first
+            $key = 'JAZYKOLAM.RELATIVE.NOW';
+            $t = $this->translate($key);
+            if ($t !== $key) return $t;
+            $rel = $this->getRelativeConfig($locale);
+            return (string)($rel['now'] ?? ($this->getRelativeConfig('en')['now'] ?? 'just now'));
+        }
+
+        $direction = ($delta < 0) ? 'past' : 'future';
+
+        $units = [
+            ['year', 365*24*3600],
+            ['month', 30*24*3600],
+            ['week', 7*24*3600],
+            ['day', 24*3600],
+            ['hour', 3600],
+            ['minute', 60],
+            ['second', 1]
+        ];
+
+        $unit = 'second';
+        $count = 1;
+        foreach ($units as [$u, $sec]) {
+            if ($abs >= $sec) {
+                $unit = $u;
+                $count = (int) floor($abs / $sec);
+                break;
+            }
+        }
+
+        $category = $this->pluralCategory($locale, (float)$count);
+
+        // languages.yaml override: JAZYKOLAM.RELATIVE.{PAST|FUTURE}.{UNIT}.{category}
+        $key = sprintf('JAZYKOLAM.RELATIVE.%s.%s.%s', strtoupper($direction), strtoupper($unit), $category);
+        $translated = $this->translate($key, [$count]);
+        if ($translated !== $key) {
+            return $this->interpolate($translated, $count);
+        }
+        // fallback to .other
+        $keyOther = sprintf('JAZYKOLAM.RELATIVE.%s.%s.other', strtoupper($direction), strtoupper($unit));
+        $translated = $this->translate($keyOther, [$count]);
+        if ($translated !== $keyOther) {
+            return $this->interpolate($translated, $count);
+        }
+
+        // plugin config fallback
+        $rel = $this->getRelativeConfig($locale);
+        $forms = (array)($rel[$direction][$unit] ?? []);
+        if (isset($forms[$category])) {
+            return $this->interpolate($forms[$category], $count);
+        }
+        if (isset($forms['other'])) {
+            return $this->interpolate($forms['other'], $count);
+        }
+        // fallback to English
+        $relEn = $this->getRelativeConfig('en');
+        $forms = (array)($relEn[$direction][$unit] ?? []);
+        if (isset($forms[$category])) {
+            return $this->interpolate($forms[$category], $count);
+        }
+        if (isset($forms['other'])) {
+            return $this->interpolate($forms['other'], $count);
+        }
+        return '';
+    }
+
+    /** Utility helpers **/
+
+    protected function getRelativeConfig(string $locale): array
+    {
+        $base = strtolower(substr($locale, 0, 2));
+        $rel = (array)($this->config['locales'][$locale]['relative'] ?? $this->config['locales'][$base]['relative'] ?? []);
+        return $rel;
+    }
+
+    protected function toTimestamp($value): int
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->getTimestamp();
+        }
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            return (int)$value;
+        }
+        $str = (string)$value;
+        $ts = strtotime($str);
+        return $ts !== false ? $ts : time();
+    }
+
+    protected function valueToDeltaSeconds($value, int $nowTs): int
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->getTimestamp() - $nowTs;
+        }
+        if (is_int($value) || is_float($value)) {
+            // Treat numeric as seconds delta
+            return (int)$value;
+        }
+        $str = (string)$value;
+        $ts = strtotime($str);
+        if ($ts !== false) {
+            return $ts - $nowTs;
+        }
+        return 0;
+    }
+
     protected function pluralCategory(string $locale, float $n): string
     {
         $base = strtolower(substr($locale, 0, 2));
         switch ($base) {
-            case 'cs': // Czech
-            case 'sk': // Slovak
+            case 'cs':
+            case 'sk':
                 if ((int)$n == 1) return 'one';
                 $i = (int)$n;
                 if ($i >= 2 && $i <= 4) return 'few';
                 return 'other';
-            case 'pl': // Polish
-                $i = (int)$n; $v = $n - $i != 0.0; // decimals ignored for simplicity
+            case 'pl':
+                $i = (int)$n; $v = $n - $i != 0.0;
                 if ($i == 1 && !$v) return 'one';
                 $n10 = $i % 10; $n100 = $i % 100;
                 if (!$v && in_array($n10, [2,3,4], true) && !in_array($n100, [12,13,14], true)) return 'few';
-                if (!$v && ($i != 1) and (in_array($n10, [0,1,5,6,7,8,9], true) or in_array($n100, [12,13,14], true))) return 'many';
+                if (!$v && ($i != 1) && (in_array($n10, [0,1,5,6,7,8,9], true) || in_array($n100, [12,13,14], true))) return 'many';
                 return 'other';
-            case 'ru': // Russian (simplified)
+            case 'ru':
                 $i = (int)$n; $n10 = $i % 10; $n100 = $i % 100;
                 if ($n10 == 1 && $n100 != 11) return 'one';
                 if (in_array($n10, [2,3,4], true) && !in_array($n100, [12,13,14], true)) return 'few';
                 return 'many';
-            case 'fr': // French (CLDR: one if 0 or 1)
+            case 'fr':
                 if ($n >= 0 && $n < 2) return 'one';
                 return 'other';
-            case 'en': // English
+            case 'en':
             default:
                 return ((int)$n == 1) ? 'one' : 'other';
         }
     }
 
-    /**
-     * Returns the order of plural forms for indexed arrays per locale
-     * e.g., cs => ['one','few','other'], en => ['one','other']
-     */
     protected function pluralOrder(string $locale): array
     {
         $base = strtolower(substr($locale, 0, 2));
@@ -210,7 +311,6 @@ class JazykolamTwigExtension extends AbstractExtension
 
     protected function translate(string $key, array $params = [])
     {
-        // Leverage Grav language translations; returns original key if not found
         return $this->language->translate([$key], $params);
     }
 
@@ -224,16 +324,14 @@ class JazykolamTwigExtension extends AbstractExtension
         }
         $str = trim((string)$value);
         if ($str === '') return (int)date('n');
-        // Try parse common formats YYYY-MM-DD
         if (preg_match('~^(\d{4})-(\d{2})-(\d{2})~', $str, $m)) {
             return (int)$m[2];
         }
-        return (int)$str; // best effort
+        return (int)$str;
     }
 
     protected function interpolate($text, $count): string
     {
-        // Replace simple placeholders like %d or {{count}}
         $out = (string)$text;
         if (strpos($out, '{{count}}') !== false) {
             $out = str_replace('{{count}}', (string)$count, $out);
