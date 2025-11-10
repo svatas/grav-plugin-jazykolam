@@ -1,127 +1,108 @@
 name: Jazykolam
-slug: jazykolam
-type: plugin
-version: 1.6.3
-schema: 1.0.0
-description: i18n Twig filters with per-render locale, DEBUG markers/panel/console, Gantry 5 integration, and auto-injected panel (smart mode).
+version: 1.6.4
+description: 'Advanced translation overlay for Grav with Admin Translation Manager and optional inline editor.'
 icon: language
+author:
+  name: 'Svatopluk Vít'
+  email: 'svatopluk@example.com'
+homepage: 'https://github.com/svatas/grav-plugin-jazykolam'
+keywords: translation, multilingual, language, overrides, inline, admin
+bugs: 'https://github.com/svatas/grav-plugin-jazykolam/issues'
 license: MIT
 
 form:
-  validation: strict
+  validation: loose
   fields:
     enabled:
       type: toggle
-      label: Plugin status
+      label: PLUGIN_ADMIN.STATUS
       highlight: 1
       default: 1
-      options: { 1: Enabled, 0: Disabled }
-      validate: { type: bool }
-
-    default_locale:
-      type: text
-      label: Default locale (leave empty for active Grav language)
-
-    prefer_languages_yaml:
-      type: toggle
-      label: Prefer site languages.yaml overrides
-      highlight: 1
-      default: 1
-      options: { 1: Yes, 0: No }
+      options:
+        1: PLUGIN_ADMIN.ENABLED
+        0: PLUGIN_ADMIN.DISABLED
+      validate:
+        type: bool
 
     auto_override:
-      type: fieldset
-      title: Automatic Overrides
+      type: section
+      title: 'Automatic overrides'
       fields:
         auto_override.t:
           type: toggle
-          label: Override |t, |tu, |tl, |trans
-          default: 1
-          options: { 1: Yes, 0: No }
+          label: 'Override |t and |trans via Jazykolam'
+          highlight: 0
+          default: 0
+          options:
+            1: 'Yes'
+            0: 'No'
+          validate:
+            type: bool
         auto_override.nicetime:
           type: toggle
-          label: Override |nicetime (use jazykolam_time)
-          default: 1
-          options: { 1: Yes, 0: No }
+          label: 'Override |nicetime via Jazykolam'
+          highlight: 0
+          default: 0
+          options:
+            1: 'Yes'
+            0: 'No'
+          validate:
+            type: bool
         auto_override.gantry:
           type: toggle
-          label: Register into Gantry Twig (if available)
-          default: 1
-          options: { 1: Yes, 0: No }
+          label: 'Integrate with Gantry 5 renderer'
+          highlight: 0
+          default: 0
+          options:
+            1: 'Yes'
+            0: 'No'
+          validate:
+            type: bool
 
     debug:
-      type: fieldset
-      title: Debug
-      collapsed: false
+      type: section
+      title: 'Debug'
       fields:
         debug.enabled:
           type: toggle
-          label: Enable DEBUG markers
+          label: 'Enable debug logging'
+          highlight: 0
           default: 0
-          options: { 1: Enabled, 0: Disabled }
-
+          options:
+            1: 'Yes'
+            0: 'No'
+          validate:
+            type: bool
         debug.inject:
-          type: select
-          label: Auto-inject panel & console
-          default: false
-          options:
-            false: Disabled
-            true: Enabled (always)
-            smart: Smart (only authenticated Admin)
-
-        debug.inject_exclude_routes:
-          type: list
-          label: Exclude routes (regex)
-          placeholder: '^/api/'
-
-        debug.inject_block_bots:
           type: toggle
-          label: Skip known bots (User-Agent)
-          default: 1
-          options: { 1: Yes, 0: No }
-
-        debug.inject_skip_json:
-          type: toggle
-          label: Skip JSON responses (Accept/Content-Type)
-          default: 1
-          options: { 1: Yes, 0: No }
-
-        debug.inject_skip_xhr:
-          type: toggle
-          label: Skip XHR (XMLHttpRequest)
-          default: 1
-          options: { 1: Yes, 0: No }
-
-        debug.mode:
-          type: select
-          label: Mode
-          default: inline
-          options:
-            inline: Inline markers (‹JL:…›)
-            wrap: Wrap only (no prefix/suffix)
-        debug.marker_prefix:
-          type: text
-          label: Marker prefix
-          default: '‹JL:'
-        debug.marker_suffix:
-          type: text
-          label: Marker suffix
-          default: '›'
-        debug.badge:
-          type: text
-          label: Badge label
-          default: 'JL'
-        debug.max_entries:
-          type: number
-          label: Max entries in panel
-          default: 200
-        debug.console:
-          type: toggle
-          label: Export to browser console (console.table)
+          label: 'Inject debug panel into HTML output'
+          highlight: 0
           default: 0
-          options: { 1: Enabled, 0: Disabled }
-        debug.copy_curl:
+          options:
+            1: 'Yes'
+            0: 'No'
+          validate:
+            type: bool
+
+    inline_edit:
+      type: section
+      title: 'Inline editor'
+      fields:
+        inline_edit.enabled:
           type: toggle
-          label: Show "Copy as cURL" button
-          default: 1
-          options: { 1: Yes, 0: No }
+          label: 'Enable inline translation editor / inspect'
+          highlight: 0
+          default: 0
+          options:
+            1: 'Yes (admins only)'
+            0: 'No'
+          validate:
+            type: bool
+        inline_edit.allowed_roles:
+          type: selectize
+          label: 'Allowed roles for inline editor'
+          classes: fancy
+          default:
+            - admin
+          validate:
+            type: commalist

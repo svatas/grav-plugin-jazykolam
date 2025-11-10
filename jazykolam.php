@@ -4,21 +4,16 @@ namespace Grav\Plugin;
 use Grav\Common\Plugin;
 use Grav\Common\Grav;
 use Grav\Common\File\CompiledYamlFile;
+use Grav\Common\Yaml;
 use RocketTheme\Toolbox\Event\Event;
 
-/**
- * Jazykolam plugin
- *
- * Provides extended translation handling, Admin Translation Manager
- * and optional frontend inline editing of translations.
- */
 class JazykolamPlugin extends Plugin
 {
     public static function getSubscribedEvents(): array
     {
         return [
             'onPluginsInitialized' => ['onPluginsInitialized', 0],
-            // Frontend inline save endpoint (task)
+            // Frontend inline save endpoint (used via /task/jazykolam.inlineSave)
             'onTask.jazykolam.inlineSave' => ['onInlineSave', 0],
         ];
     }
@@ -26,13 +21,11 @@ class JazykolamPlugin extends Plugin
     public function onPluginsInitialized(): void
     {
         if ($this->isAdmin()) {
-            // Admin context: navigation + controller integration
             $this->enable([
                 'onAdminMenu' => ['onAdminMenu', 0],
                 'onAdminControllerInit' => ['onAdminControllerInit', 0],
             ]);
         } else {
-            // Site context: Twig integration, Gantry integration, debug + inline assets
             $this->enable([
                 'onTwigExtensions' => ['onTwigExtensions', 0],
                 'onOutputGenerated' => ['onOutputGenerated', 0],
@@ -41,9 +34,6 @@ class JazykolamPlugin extends Plugin
         }
     }
 
-    /**
-     * Register Twig extension and optional auto-override filters for frontend.
-     */
     public function onTwigExtensions(): void
     {
         $grav = $this->grav;
@@ -51,12 +41,11 @@ class JazykolamPlugin extends Plugin
 
         require_once __DIR__ . '/classes/JazykolamTwigExtension.php';
         $ext = new \JazykolamTwigExtension($grav);
-
         $twig->addExtension($ext);
 
         $cfg = (array)$this->config->get('plugins.jazykolam');
 
-        // Optional override of standard translation filters
+        // Optional override of Grav core translation filters
         if (!empty($cfg['auto_override']['t'])) {
             $twig->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
             $twig->addFilter(new \Twig\TwigFilter('trans', [$ext, 'autoT'], ['is_variadic' => true]));
@@ -65,13 +54,10 @@ class JazykolamPlugin extends Plugin
         }
 
         if (!empty($cfg['auto_override']['nicetime'])) {
-            $twig->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'autoNicetime'], ['is_variadic' => true]));
+            $twig->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'jazykolamTime'], ['is_variadic' => true]));
         }
     }
 
-    /**
-     * Theme init: optional Gantry 5 integration when enabled.
-     */
     public function onThemeInitialized(): void
     {
         $cfg = (array)$this->config->get('plugins.jazykolam');
@@ -94,23 +80,11 @@ class JazykolamPlugin extends Plugin
             $engine = $gantry['theme'];
             $renderer = $engine->renderer();
             $renderer->addExtension($ext);
-
-            if (!empty($cfg['auto_override']['t'])) {
-                $renderer->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
-                $renderer->addFilter(new \Twig\TwigFilter('trans', [$ext, 'autoT'], ['is_variadic' => true]));
-            }
-
-            if (!empty($cfg['auto_override']['nicetime'])) {
-                $renderer->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'autoNicetime'], ['is_variadic' => true]));
-            }
         } catch (\Throwable $e) {
-            // Gantry is optional; never break the site.
+            // Gantry integration is best-effort only.
         }
     }
 
-    /**
-     * Inject debug panel and inline editor bootstrap (only when enabled).
-     */
     public function onOutputGenerated(Event $e): void
     {
         $cfg = (array)$this->config->get('plugins.jazykolam');
@@ -127,10 +101,9 @@ class JazykolamPlugin extends Plugin
         $content = (string)$response->getContent();
 
         // Debug panel
-        $debugEnabled = (bool)($cfg['debug']['enabled'] ?? false);
-        $debugInject = $cfg['debug']['inject'] ?? false;
+        if (!empty($cfg['debug']['enabled']) && !empty($cfg['debug']['inject'])
+            && class_exists('\JazykolamTwigExtension') && method_exists('\JazykolamTwigExtension', 'getDebugLog')) {
 
-        if ($debugEnabled && $debugInject && class_exists('\JazykolamTwigExtension') && method_exists('\JazykolamTwigExtension', 'getDebugLog')) {
             $log = \JazykolamTwigExtension::getDebugLog();
             if (!empty($log)) {
                 $panel = '<div id="jazykolam-debug-panel" style="position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow:auto;background:#111;color:#eee;font:12px monospace;z-index:9999;padding:8px;border-top:2px solid #e91e63;">';
@@ -148,25 +121,77 @@ class JazykolamPlugin extends Plugin
             }
         }
 
-        // Inline editor JS only for authorized inline-edit session
+        // Inline editor / inspect JS – only if active for this request
         if ($this->isInlineEditActive()) {
             $nonce = $this->grav['utils']->getNonce('jazykolam-inline');
             $script = <<<HTML
 <script>
 (function(){
-  function jzClosestInline(el){
+  function getMode(){
+    var q = window.location.search || '';
+    if(q.indexOf('jazykolam_inline=inspect') !== -1) return 'inspect';
+    if(q.indexOf('jazykolam_inline=1') !== -1) return 'edit';
+    return 'off';
+  }
+  function closestSpan(el){
     while(el && el !== document && !(el.classList && el.classList.contains('jazykolam-inline'))){
       el = el.parentElement;
     }
     return (el && el.classList && el.classList.contains('jazykolam-inline')) ? el : null;
   }
-  function jzEdit(span){
+  function ensureTooltip(span){
+    if(!span.getAttribute('title')){
+      var key = span.getAttribute('data-jazykolam-key') || '';
+      var loc = span.getAttribute('data-jazykolam-locale') || '';
+      span.setAttribute('title', key + (loc ? ' ['+loc+']' : ''));
+    }
+  }
+  function createPopup(){
+    var wrap = document.createElement('div');
+    wrap.id = 'jazykolam-inline-popup';
+    wrap.style.position = 'fixed';
+    wrap.style.left = '50%';
+    wrap.style.top = '20%';
+    wrap.style.transform = 'translateX(-50%)';
+    wrap.style.zIndex = '99999';
+    wrap.style.background = '#222';
+    wrap.style.color = '#fff';
+    wrap.style.padding = '12px';
+    wrap.style.borderRadius = '6px';
+    wrap.style.boxShadow = '0 4px 18px rgba(0,0,0,0.5)';
+    wrap.style.maxWidth = '480px';
+    wrap.style.fontSize = '13px';
+    wrap.innerHTML =
+      '<div style="margin-bottom:6px;font-weight:bold;">Jazykolam inline edit</div>'+
+      '<div id="jz-key" style="margin-bottom:4px;"></div>'+
+      '<textarea id="jz-value" style="width:100%;min-height:70px;font-size:13px;"></textarea>'+
+      '<div style="margin-top:6px;text-align:right;">'+
+        '<button type="button" id="jz-cancel" style="margin-right:4px;">Cancel</button>'+
+        '<button type="button" id="jz-save">Save</button>'+
+      '</div>';
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+  function openPopup(span, nonce){
     var key = span.getAttribute('data-jazykolam-key') || '';
     var locale = span.getAttribute('data-jazykolam-locale') || '';
     if(!key){ return; }
-    var current = span.textContent || '';
-    var value = window.prompt('Upravit překlad ['+key+'] ('+locale+'): ', current);
-    if(value === null){ return; }
+    var cur = span.textContent || '';
+    var popup = document.getElementById('jazykolam-inline-popup') || createPopup();
+    popup.style.display = 'block';
+    popup.dataset.key = key;
+    popup.dataset.locale = locale;
+    popup.dataset.nonce = nonce;
+    popup.querySelector('#jz-key').textContent = key + (locale ? ' ['+locale+']' : '');
+    popup.querySelector('#jz-value').value = cur;
+    popup.querySelector('#jz-cancel').onclick = function(){ popup.style.display = 'none'; };
+    popup.querySelector('#jz-save').onclick = function(){ doSave(span, popup); };
+  }
+  function doSave(span, popup){
+    var key = popup.dataset.key;
+    var locale = popup.dataset.locale;
+    var nonce = popup.dataset.nonce;
+    var value = popup.querySelector('#jz-value').value;
     var xhr = new XMLHttpRequest();
     var base = (window.GravAdmin && GravAdmin.config && GravAdmin.config.base_url_relative) ? GravAdmin.config.base_url_relative : '';
     xhr.open('POST', base + '/task/jazykolam.inlineSave', true);
@@ -174,14 +199,16 @@ class JazykolamPlugin extends Plugin
     xhr.onload = function(){
       if(xhr.status === 200){
         try {
-          var res = JSON.parse(xhr.responseText);
-          if(res && res.status === 'ok'){
+          var res = JSON.parse(xhr.responseText || '{}');
+          if(res.status === 'ok'){
             span.textContent = value;
-          } else {
-            alert('Jazykolam: uložení selhalo: ' + (res.message || 'neznámá chyba'));
+            popup.style.display = 'none';
+            return;
           }
+          alert('Jazykolam: uložení selhalo: ' + (res.message || 'unknown error'));
         } catch(e){
           span.textContent = value;
+          popup.style.display = 'none';
         }
       } else {
         alert('Jazykolam: chyba při ukládání ('+xhr.status+').');
@@ -193,17 +220,29 @@ class JazykolamPlugin extends Plugin
                '&nonce=' + encodeURIComponent('%s');
     xhr.send(body);
   }
-  document.addEventListener('click', function(ev){
-    var span = jzClosestInline(ev.target);
-    if(!span){ return; }
-    ev.preventDefault();
-    ev.stopPropagation();
-    jzEdit(span);
-  }, false);
-})();
-</script>
+
+  var mode = getMode();
+  if(mode === 'off') return;
+
+  if(mode === 'inspect'){
+    document.addEventListener('mouseover', function(ev){
+      var span = closestSpan(ev.target);
+      if(span){ ensureTooltip(span); }
+    });
+  }
+
+  if(mode === 'edit'){
+    document.addEventListener('click', function(ev){
+      var span = closestSpan(ev.target);
+      if(!span) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      openPopup(span, '%s');
+    }, false);
+  }
+})();</script>
 HTML;
-            $script = sprintf($script, $nonce);
+            $script = sprintf($script, $nonce, $nonce);
 
             if (stripos($content, '</body>') !== false) {
                 $content = preg_replace('~</body>~i', $script . '</body>', $content, 1);
@@ -216,9 +255,6 @@ HTML;
         $e['response'] = $response;
     }
 
-    /**
-     * Add Jazykolam to Admin navigation.
-     */
     public function onAdminMenu(): void
     {
         $this->grav['twig']->plugins_hooked_nav['Jazykolam'] = [
@@ -227,9 +263,6 @@ HTML;
         ];
     }
 
-    /**
-     * Admin controller: set up data for Translation Manager and handle save.
-     */
     public function onAdminControllerInit(Event $event): void
     {
         $controller = $event['controller'];
@@ -245,9 +278,6 @@ HTML;
         }
     }
 
-    /**
-     * Build translations matrix + detect missing keys for Admin UI.
-     */
     protected function prepareAdminTranslations(): void
     {
         $language = $this->grav['language'];
@@ -256,10 +286,10 @@ HTML;
             $languages = [$language->getDefault() ?: 'en'];
         }
 
-        $allTranslations = (array)$language->getTranslations();
+        $all = (array)$language->getTranslations();
         $matrix = [];
 
-        foreach ($allTranslations as $locale => $items) {
+        foreach ($all as $locale => $items) {
             foreach ((array)$items as $key => $value) {
                 if (!isset($matrix[$key])) {
                     $matrix[$key] = [];
@@ -268,9 +298,8 @@ HTML;
             }
         }
 
-        // Collect used keys from Twig templates
-        $usedKeys = $this->collectUsedKeys();
-        foreach ($usedKeys as $key) {
+        // Discover keys from templates (Twig)
+        foreach ($this->collectUsedKeys() as $key) {
             if (!isset($matrix[$key])) {
                 $matrix[$key] = [];
             }
@@ -278,7 +307,7 @@ HTML;
 
         ksort($matrix);
 
-        // Determine which keys are missing at least one language
+        // Mark missing keys
         $missing = [];
         foreach ($matrix as $key => $langs) {
             foreach ($languages as $locale) {
@@ -296,10 +325,6 @@ HTML;
         $twig->twig_vars['jazykolam_missing_keys'] = array_keys($missing);
     }
 
-    /**
-     * Save translations from Admin UI into user/languages.jazykolam.yaml
-     * including new key row and creating a backup.
-     */
     protected function handleSaveTranslations(): void
     {
         if (!$this->isAdmin()) {
@@ -316,11 +341,13 @@ HTML;
         $newKey = trim((string)($post['jazykolam_new_key'] ?? ''));
         $newVals = $post['jazykolam_new'] ?? [];
 
-        $file = $this->getJazykolamLangFile();
+        $file = $this->getLangFile();
         $content = $file->exists() ? (array)$file->content() : [];
 
-        // Backup before write
-        $this->backupLangFile($file, $content);
+        // Backup
+        if ($file->exists() && !empty($content)) {
+            $this->backupLangFile($file, $content);
+        }
 
         if (is_array($data)) {
             foreach ($data as $key => $langs) {
@@ -330,9 +357,7 @@ HTML;
                 foreach ($langs as $locale => $value) {
                     $value = trim((string)$value);
                     if ($value === '') {
-                        if (isset($content[$key][$locale])) {
-                            unset($content[$key][$locale]);
-                        }
+                        unset($content[$key][$locale]);
                     } else {
                         if (!isset($content[$key]) || !is_array($content[$key])) {
                             $content[$key] = [];
@@ -346,7 +371,6 @@ HTML;
             }
         }
 
-        // New key support
         if ($newKey !== '' && is_array($newVals)) {
             foreach ($newVals as $locale => $value) {
                 $value = trim((string)$value);
@@ -370,9 +394,6 @@ HTML;
         }
     }
 
-    /**
-     * Frontend inline save handler.
-     */
     public function onInlineSave(): void
     {
         $grav = $this->grav;
@@ -380,7 +401,7 @@ HTML;
         $user = $grav['user'] ?? null;
 
         if (!$request || !$user || !$user->authenticated) {
-            $this->inlineJson(['status' => 'error', 'message' => 'Not authorized']);
+            $this->json(['status' => 'error', 'message' => 'Not authorized']);
             return;
         }
 
@@ -394,13 +415,13 @@ HTML;
             }
         }
         if (!$ok) {
-            $this->inlineJson(['status' => 'error', 'message' => 'Forbidden']);
+            $this->json(['status' => 'error', 'message' => 'Forbidden']);
             return;
         }
 
         $nonce = $request->getPost()['nonce'] ?? null;
         if (!$grav['utils']->verifyNonce($nonce, 'jazykolam-inline')) {
-            $this->inlineJson(['status' => 'error', 'message' => 'Invalid nonce']);
+            $this->json(['status' => 'error', 'message' => 'Invalid nonce']);
             return;
         }
 
@@ -409,11 +430,11 @@ HTML;
         $value = (string)($request->getPost()['value'] ?? '');
 
         if ($key === '' || $locale === '') {
-            $this->inlineJson(['status' => 'error', 'message' => 'Missing key/locale']);
+            $this->json(['status' => 'error', 'message' => 'Missing key/locale']);
             return;
         }
 
-        $file = $this->getJazykolamLangFile();
+        $file = $this->getLangFile();
         $content = $file->exists() ? (array)$file->content() : [];
 
         if ($value === '') {
@@ -431,43 +452,27 @@ HTML;
         $file->save($content);
         $file->free();
 
-        $this->inlineJson(['status' => 'ok']);
+        $this->json(['status' => 'ok']);
     }
 
-    /**
-     * Get jazykolam language file instance.
-     */
-    protected function getJazykolamLangFile(): CompiledYamlFile
+    protected function getLangFile(): CompiledYamlFile
     {
         $locator = $this->grav['locator'];
         $path = $locator->findResource('user://languages.jazykolam.yaml', true, true);
         return CompiledYamlFile::instance($path);
     }
 
-    /**
-     * Create a timestamped backup of language file before overwrite.
-     */
     protected function backupLangFile(CompiledYamlFile $file, array $content): void
     {
-        if (!$file->exists() || empty($content)) {
-            return;
-        }
-
         $path = $file->filename();
         $dir = dirname($path);
         $name = basename($path, '.yaml');
         $ts = date('Ymd_His');
         $backup = $dir . '/' . $name . '.' . $ts . '.bak.yaml';
-
-        if (!empty($content) && class_exists('Grav\\Common\\Yaml')) {
-            @file_put_contents($backup, \Grav\Common\Yaml::dump($content));
-        }
+        @file_put_contents($backup, Yaml::dump($content));
     }
 
-    /**
-     * Return JSON response and terminate.
-     */
-    protected function inlineJson(array $data): void
+    protected function json(array $data): void
     {
         $grav = $this->grav;
         $response = $grav['response'] ?? null;
@@ -488,9 +493,6 @@ HTML;
         }
     }
 
-    /**
-     * Determine if inline edit mode is active for current request.
-     */
     protected function isInlineEditActive(): bool
     {
         $cfg = (array)$this->config->get('plugins.jazykolam');
@@ -517,16 +519,16 @@ HTML;
         }
 
         $uri = $grav['uri'] ?? null;
-        if ($uri && ($uri->query('jazykolam_inline') == 1 || $uri->param('jazykolam_inline') == 1)) {
-            return true;
+        if ($uri) {
+            $v = (string)$uri->query('jazykolam_inline') ?: (string)$uri->param('jazykolam_inline');
+            if ($v === '1' || $v === 'inspect') {
+                return true;
+            }
         }
 
         return false;
     }
 
-    /**
-     * Scan user themes and plugins for Twig templates and collect translation keys.
-     */
     protected function collectUsedKeys(): array
     {
         $locator = $this->grav['locator'];
@@ -552,21 +554,15 @@ HTML;
             if (!is_dir($base)) {
                 continue;
             }
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base));
-            foreach ($iterator as $file) {
-                if (!$file->isFile()) {
-                    continue;
-                }
-                if (substr($file->getFilename(), -5) !== '.twig') {
-                    continue;
-                }
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base));
+            foreach ($it as $file) {
+                if (!$file->isFile()) continue;
+                if (substr($file->getFilename(), -5) !== '.twig') continue;
                 $code = @file_get_contents($file->getPathname());
-                if ($code === false) {
-                    continue;
-                }
+                if ($code === false) continue;
                 if (preg_match_all($pattern, $code, $m)) {
-                    foreach ($m[1] as $key) {
-                        $keys[$key] = true;
+                    foreach ($m[1] as $k) {
+                        $keys[$k] = true;
                     }
                 }
             }

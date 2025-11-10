@@ -1,119 +1,27 @@
-# Changelog – Jazykolam Plugin for Grav + Gantry 5
+# CHANGELOG (EN)
 
-All notable changes to this project are documented here.
-
----
-
-## [1.5.1] – 2025-11-09
-### Fixed
-- Corrected string concatenation for the debug panel (`.` instead of `+`).
-- Updated metadata and inline comments.
-
-### Improved
-- Prepared documentation for ICU-lite examples.
-- Added basic duplication-check for Gantry filters.
-
----
-
-## [1.5.0] – 2025-10-??
+## [1.6.4] – 2025-11-09
 ### Added
-- Full **Gantry 5** integration (dual Twig registration).
-- New filters: `jazykolam_month`, `jazykolam_time`, `jazykolam_plural`.
-- `jazykolam_set_locale()` for temporary locale switching.
-- **Debug mode** (panel + console output).
-- **ICU-lite syntax** for pluralization in `languages.yaml`.
-- Demo outline with advanced language switch particle.
+- Improved inline editor:
+  - uses a popup dialog (textarea + Save/Cancel) instead of `prompt()`,
+  - better for longer texts.
+- Added `?jazykolam_inline=inspect`:
+  - shows key/locale as tooltip,
+  - read-only inspection.
 
----
-
-## [1.4.0] – 2025-09-??
-- Initial Gantry integration (beta).
-- Auto-override for `t`, `tu`, `tl`, `trans`, `nicetime`.
-- Added `prefer_languages_yaml` option.
-
----
-
-## [1.3.0] – 2025-08-??
-- First implementation of plural categories (one/few/other).
-- Added `default_locale` override.
-
----
-
-## [1.2.0] – 2025-07-??
-- Introduced `jazykolam_time`.
-- Added translation fallback logging.
-
----
-
-## [1.1.0] – 2025-06-??
-- Added `jazykolam_month` and `jazykolam_debug`.
-- Support for custom language files (`languages.jazykolam_*.yaml`).
-
----
-
-## [1.0.0] – 2025-05-??
-- First public release of the Jazykolam plugin.
-- Basic translation filter.
-- Supported languages: cs, en, pl, sk.
-
----
-
-## Roadmap
-- ✅ ICU-lite documentation.
-- 🔜 Unit tests and GitHub release.
-- 🔜 Additional language packs.
-- 🔜 JSON/CSV dictionary imports.
-- 🔜 Admin integration (locale switch and debug toggle).
-
-## [1.6.0] – 2025-11-09
-### Added
-- Added `DOKUMENTACE.md` (Czech full documentation) to the package.
-- Introduced preparatory configuration options for inline translations, automatic locale detection and localized date/time formats (no impact when disabled).
-- Normalized package root folder to `jazykolam` for proper Grav plugin installation.
-
-### Note
-- Inline editing and extended tools are designed as a safe base for future 1.6.x releases without touching Grav core.
-
-## [1.6.1] – 2025-11-09
-### Added
-- Basic **Translation Manager** in the Admin panel (left menu item "Jazykolam").
-- Displays a matrix of keys vs. languages with inline editing.
-
-### How it works
-- Changes are stored in `user/languages.jazykolam.yaml`.
-- These values take precedence over other translation sources.
-- Only available to authenticated administrators.
-
-### Note
-- Frontend inline editing is not enabled yet – 1.6.1 focuses on a safe Admin-based workflow.
-
-## [1.6.2] – 2025-11-09
-### Added
-- Experimental **frontend inline translation editor**.
-- Enabled via `inline_edit.enabled: true` and the `?jazykolam_inline=1` URL flag.
-- Clicking on a highlighted `span.jazykolam-inline` allows editing the translation.
-
-### Security & Behaviour
-- Only authenticated users with roles from `inline_edit.allowed_roles` (default `admin`) may edit.
-- Saves via protected `/task/jazykolam.inlineSave` endpoint with a nonce.
-- Writes into `user/languages.jazykolam.yaml`, consistent with 1.6.1.
-
-### Note
-- Inline editor is disabled by default and has no impact on normal site visitors.
+### Security
+- Inline/inspect only active if `inline_edit.enabled: true`
+  and user has one of `inline_edit.allowed_roles`.
+- Disabled by default.
 
 ## [1.6.3] – 2025-11-09
-### Added
-- Enhanced **Translation Manager** in the Admin panel:
-  - text filter for keys and values,
-  - toggle to show only keys with missing translations,
-  - automatic discovery of translation keys used in Twig templates,
-  - a dedicated row to add a new key directly from the UI.
-- Automatic backup of `user/languages.jazykolam.yaml` to a timestamped `.bak` file before saving.
+- Extended Translation Manager (filtering, missing-only, template key discovery, add-new-key row, backups).
 
-### Changed
-- Admin data model now also includes keys found in templates even if they are not yet translated.
-- All writes remain scoped strictly to `languages.jazykolam.yaml`; Grav core and other plugins are not modified.
+## [1.6.2]
+- Experimental inline editor (`?jazykolam_inline=1`), saving to `user/languages.jazykolam.yaml`.
 
-### Note
-- Frontend inline editor remains experimental and disabled by default.
+## [1.6.1]
+- Basic Admin Translation Manager.
 
+## [1.6.0]
+- Documentation and configuration groundwork.
