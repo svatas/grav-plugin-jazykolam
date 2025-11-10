@@ -6,9 +6,8 @@
 <h1>Jazykolam – Translation Manager</h1>
 
 <p>
-  Tento nástroj umožňuje spravovat překladové klíče použitím Jazykolamu –
-  upravovat hodnoty, doplňovat chybějící překlady a přidávat nové klíče,
-  aniž by bylo nutné ručně editovat YAML soubory.
+  Nástroj pro správu překladových klíčů: úprava hodnot, doplnění chybějících překladů,
+  přidávání nových klíčů a náhled klíčů detekovaných v Twig šablonách.
 </p>
 
 <div class="block">
@@ -39,9 +38,7 @@
         <tr class="jaz-row{% if is_missing %} is-missing{% endif %}"
             data-key="{{ key }}"
             data-missing="{{ is_missing ? '1' : '0' }}">
-          <td>
-            <code>{{ key }}</code>
-          </td>
+          <td><code>{{ key }}</code></td>
           {% for lang in jazykolam_languages %}
             {% set val = langs[lang]|default('') %}
             <td>
@@ -55,7 +52,6 @@
         </tr>
       {% endfor %}
 
-      {# New key row #}
       <tr class="jaz-new">
         <td>
           <input type="text"
@@ -85,9 +81,8 @@
 </form>
 
 <p class="notice">
-  Překlady se ukládají do <code>user/languages.jazykolam.yaml</code>.
-  Tento soubor má vyšší prioritu než ostatní zdroje překladů.
-  Před uložením změn je vytvořena záloha s časovým razítkem.
+  Překlady se ukládají do <code>user/languages.jazykolam.yaml</code> (s automatickou zálohou `.bak` před uložením).
+  Hodnoty z tohoto souboru mají prioritu před ostatními zdroji.
 </p>
 
 <script>
@@ -97,32 +92,27 @@
   var table = document.getElementById('jazykolam-table');
   if(!input || !table) return;
 
-  function normalize(s){
-    return (s || '').toString().toLowerCase();
-  }
+  function norm(s){ return (s || '').toString().toLowerCase(); }
 
-  function applyFilter(){
-    var q = normalize(input.value);
-    var missing = !!missingOnly.checked;
+  function apply(){
+    var q = norm(input.value);
+    var miss = !!missingOnly.checked;
     var rows = table.querySelectorAll('tbody tr.jaz-row');
     rows.forEach(function(tr){
-      var key = normalize(tr.getAttribute('data-key'));
+      var key = norm(tr.getAttribute('data-key'));
       var isMissing = tr.getAttribute('data-missing') === '1';
       var text = key;
-
-      // include cell values
       tr.querySelectorAll('input[type="text"]').forEach(function(inp){
-        text += ' ' + normalize(inp.value);
+        text += ' ' + norm(inp.value);
       });
-
       var match = !q || text.indexOf(q) !== -1;
-      var missOk = !missing || isMissing;
+      var missOk = !miss || isMissing;
       tr.style.display = (match && missOk) ? '' : 'none';
     });
   }
 
-  input.addEventListener('input', applyFilter);
-  missingOnly.addEventListener('change', applyFilter);
+  input.addEventListener('input', apply);
+  missingOnly.addEventListener('change', apply);
 })();
 </script>
 {% endblock %}
