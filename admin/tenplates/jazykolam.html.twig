@@ -1,5 +1,49 @@
-{% extends '@admin/pages/plugins/plugin.html.twig' %}
+{% extends 'partials/base.html.twig' %}
+
+{% block title %}Jazykolam – Translations{% endblock %}
+
 {% block content %}
-  {{ parent() }}
-  {% include 'partials/jazykolam-tools.html.twig' %}
+<h1>Jazykolam – Translation Manager</h1>
+
+<p>This screen lets you edit translation keys stored in Jazykolam language files.</p>
+
+<form method="post" action="{{ uri.addNonce(url('task', 'jazykolam.saveTranslations'), 'admin-form', 'admin-nonce') }}">
+  <table class="grav-table">
+    <thead>
+      <tr>
+        <th>Key</th>
+        {% for lang in jazykolam_languages %}
+          <th>{{ lang|upper }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, langs in jazykolam_translations %}
+        <tr>
+          <td><code>{{ key }}</code></td>
+          {% for lang in jazykolam_languages %}
+            <td>
+              <input type="text"
+                     name="jazykolam[{{ key }}][{{ lang }}]"
+                     value="{{ (langs[lang]|default(''))|e('html_attr') }}"
+                     style="width:100%;" />
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="button-bar">
+    <button class="button primary" type="submit">
+      <i class="fa fa-save"></i> {{ 'PLUGIN_ADMIN.SAVE'|tu }}
+    </button>
+  </div>
+
+  <input type="hidden" name="task" value="jazykolam.saveTranslations" />
+</form>
+
+<p class="notice">
+  Values are saved into <code>user/languages.jazykolam.yaml</code> and override other language sources for matching keys.
+</p>
 {% endblock %}
