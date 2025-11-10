@@ -6,85 +6,398 @@ use Twig\TwigFunction;
 
 class JazykolamTwigExtension extends AbstractExtension
 {
-    protected $grav; protected $language; protected $config;
+    /** @var Grav */
+    protected $grav;
+    protected $language;
+    protected $config;
+
+    /** @var string|null */
     protected static $localeOverride = null;
+
+    /** @var array */
     protected static $debugLog = [];
 
     public function __construct(Grav $grav)
-    { $this->grav = $grav; $this->language = $grav['language']; $this->config = (array)$grav['config']->get('plugins.jazykolam'); }
+    {
+        $this->grav = $grav;
+        $this->language = $grav['language'];
+        $this->config = (array)$grav['config']->get('plugins.jazykolam');
+    }
 
     public function getFilters(): array
-    { return [ new TwigFilter('jazykolam_plural', [$this,'pluralFilter']), new TwigFilter('jazykolam_month', [$this,'monthFilter']), new TwigFilter('jazykolam_time', [$this,'timeFilter']) ]; }
+    {
+        return [
+            new TwigFilter('jazykolam_plural', [$this, 'jazykolamPlural'], ['is_safe' => ['html']]),
+            new TwigFilter('jazykolam_month', [$this, 'jazykolamMonth'], ['is_safe' => ['html']]),
+            new TwigFilter('jazykolam_time', [$this, 'jazykolamTime'], ['is_safe' => ['html']]),
+            new TwigFilter('jazykolam_debug', [$this, 'debugFilter'], ['is_safe' => ['html']]),
+            // These are used when auto_override is enabled
+            new TwigFilter('jazykolam_t', [$this, 'autoT'], ['is_variadic' => true, 'is_safe' => ['html']]),
+            new TwigFilter('jazykolam_nicetime', [$this, 'autoNicetime'], ['is_variadic' => true, 'is_safe' => ['html']]),
+        ];
+    }
 
     public function getFunctions(): array
     {
         return [
             new TwigFunction('jazykolam_set_locale', [$this, 'setLocaleFunction']),
-            new TwigFunction('jazykolam_debug', [$this, 'debugFunction'], ['is_safe'=>['html']]),
-            new TwigFunction('jazykolam_debug_panel', function(){ return $this->debugPanelFunction(''); }, ['is_safe'=>['html']]),
-            new TwigFunction('jazykolam_debug_console', [$this, 'debugConsoleFunction'], ['is_safe'=>['html']])
+            new TwigFunction('jazykolam_debug', [$this, 'debugFunction'], ['is_safe' => ['html']]),
+            new TwigFunction('jazykolam_debug_panel', [$this, 'debugPanelFunction'], ['is_safe' => ['html']]),
+            new TwigFunction('jazykolam_debug_console', [$this, 'debugConsoleFunction'], ['is_safe' => ['html']]),
         ];
     }
 
-    public function setLocaleFunction(?string $locale = null): string
-    { self::$localeOverride = $locale ? (string)$locale : null; return ''; }
+    /* ========= Core translation wrappers ========= */
 
-    public function pluralFilter($count, $forms, ?string $locale = null): string
-    { $locale=$locale?:$this->getActiveLocale(); $category=$this->pluralCategory($locale,(float)$count); $out=null;$keyUsed=null; if(is_string($forms)){ $keyUsed=$forms.'.'.$category; $translated=$this->translate($keyUsed,[$count],$locale); if($translated!==$keyUsed)$out=$this->interpolate($translated,$count); if($out===null){ foreach(['other','many','few','one'] as $fb){ $fk=$forms.'.'.$fb; $t=$this->translate($fk,[$count],$locale); if($t!==$fk){$keyUsed=$fk;$out=$this->interpolate($t,$count);break;} } } if($out===null)$out=(string)$forms; } elseif(is_array($forms)){ $keyUsed='{map}'; $map=$forms; if(array_keys($forms)===range(0,count($forms)-1)){ $order=$this->pluralOrder($locale); $idx=array_search($category,$order,true); $out=$this->interpolate(($idx!==false && isset($forms[$idx]))?$forms[$idx]:end($forms),$count); $keyUsed='{array}'; } else { if(isset($map[$category]))$out=$this->interpolate($map[$category],$count); elseif(isset($map['other']))$out=$this->interpolate($map['other'],$count); } } else { $out=(string)$forms; $keyUsed='{string}'; } return $this->maybeDebugWrap($out,['source'=>'plural','key'=>$keyUsed,'locale'=>$locale,'meta'=>['category'=>$category,'count'=>$count]]); }
-
-    public function monthFilter($value, string $form='long', ?string $locale=null): string
-    { $locale=$locale?:$this->getActiveLocale(); $m=$this->normalizeMonth($value); if($m<1||$m>12) return ''; $key=sprintf('JAZYKOLAM.MONTH.%s.%d',strtoupper($form),$m); $translated=$this->translate($key,[], $locale); $out=$translated!==$key?(string)$translated:''; return $this->maybeDebugWrap($out?: (string)$m, ['source'=>'month','key'=>$key,'locale'=>$locale,'meta'=>['form'=>$form,'month'=>$m]]); }
-
-    public function timeFilter($value, ?string $locale=null, $now=null): string
-    { $locale=$locale?:$this->getActiveLocale(); $nowTs=$this->toTimestamp($now??'now'); $delta=$this->valueToDeltaSeconds($value,$nowTs); $abs=abs($delta); if($abs<45){ $key='JAZYKOLAM.RELATIVE.NOW'; $t=$this->translate($key,[], $locale); $out=($t!==$key)?$t:'just now'; return $this->maybeDebugWrap($out,['source'=>'time','key'=>$key,'locale'=>$locale,'meta'=>['delta'=>$delta]]);} $direction=($delta<0)?'past':'future'; $units=[['year',31536000],['month',2592000],['week',604800],['day',86400],['hour',3600],['minute',60],['second',1]]; $unit='second'; $count=1; foreach($units as [$u,$sec]){ if($abs>=$sec){ $unit=$u; $count=(int)floor($abs/$sec); break; } } $key=sprintf('JAZYKOLAM.RELATIVE.%s.%s.other',strtoupper($direction),strtoupper($unit)); $t=$this->translate($key,[$count],$locale); $out=$this->interpolate($t,$count); return $this->maybeDebugWrap($out,['source'=>'time','key'=>$key,'locale'=>$locale,'meta'=>['direction'=>$direction,'unit'=>$unit,'count'=>$count,'delta'=>$delta]]); }
-
-    public function autoT($value, ...$params)
-    { $locale=$this->getActiveLocale(); $args=$params[0]??[]; if(!is_array($args))$args=[]; $count=$args['count']??($args[0]??null); $key=(string)$value; $raw=$this->translateRaw($key,$locale); $out=null; if(is_string($raw) && strpos($raw,'{count, plural,')!==false && $count!==null){ $selected=$this->parseIcuPlural($raw,(float)$count,$locale); $out=$this->interpolate($selected,$count); } elseif(is_array($raw) && $count!==null){ $category=$this->pluralCategory($locale,(float)$count); if(isset($raw[$category])) $out=$this->interpolate($raw[$category],$count); elseif(isset($raw['other'])) $out=$this->interpolate($raw['other'],$count); } if($out===null) $out=$this->language->translate([$key], $args); return $this->maybeDebugWrap($out,['source'=>'autoT','key'=>$key,'locale'=>$locale,'meta'=>['count'=>$count]]); }
-
-    public function autoNicetime($value) { return $this->timeFilter($value, $this->getActiveLocale()); }
-
-    public function debugFunction($value, array $meta=[]) { $meta += ['source'=>'manual','key'=>'{manual}','locale'=>$this->getActiveLocale()]; return $this->maybeDebugWrap((string)$value, $meta); }
-
-    public function debugPanelFunction(string $curl=''): string
+    /**
+     * Replacement for |t, |trans, etc. when auto_override.t is enabled.
+     * Accepts (key, [params]) style arguments.
+     */
+    public function autoT(...$args): string
     {
-        if (!$this->isDebugEnabled()) return '';
-        $items = self::$debugLog; if (!$items) $items = [];
-        $rows=''; foreach($items as $i){ $rows.=sprintf('<tr><td>%s</td><td>%s</td><td>%s</td><td><code>%s</code></td></tr>',
-            htmlspecialchars($i['source']??'',ENT_QUOTES), htmlspecialchars($i['locale']??'',ENT_QUOTES), htmlspecialchars($i['key']??'',ENT_QUOTES), htmlspecialchars(mb_strimwidth((string)($i['out']??''),0,120,'…'),ENT_QUOTES)); }
-        $curlBtn = $curl ? '<button onclick="navigator.clipboard.writeText(document.getElementById(\'jl-curl\').textContent);alert(\'cURL copied\');" style="margin-left:8px;background:#444;color:#eee;border:0;padding:4px 8px;border-radius:4px;cursor:pointer;">copy cURL</button>' : '';
-        $curlBox = $curl ? '<pre id="jl-curl" style="display:none">'.htmlspecialchars($curl,ENT_QUOTES).'</pre>' : '';
-        $html = '<div id="jl-debug-panel" style="position:fixed;bottom:10px;right:10px;z-index:99999;background:#111;color:#eee;border:1px solid #444;border-radius:6px;font:12px/1.4 monospace;box-shadow:0 2px 10px rgba(0,0,0,.4);">'
-              . '<div style="padding:6px 10px;border-bottom:1px solid #444;display:flex;align-items:center;gap:8px;">'
-              . '<strong>Jazykolam DEBUG</strong>'
-              . '<button onclick="var b=document.getElementById(\'jl-debug-body\');b.style.display=(b.style.display==\'none\'?\'block\':\'none\');" style="margin-left:auto;background:#444;color:#eee;border:0;padding:4px 8px;border-radius:4px;cursor:pointer;">toggle</button>'
-              . '<button onclick="(function(){try{var d=window.__JAZYKOLAM_LOG__||[];navigator.clipboard.writeText(JSON.stringify(d));alert(\'Copied JSON\');}catch(e){console.log(d);}})();" style="margin-left:8px;background:#444;color:#eee;border:0;padding:4px 8px;border-radius:4px;cursor:pointer;">copy JSON</button>'
-              . $curlBtn
-              . '<button onclick="(function(){window.__JAZYKOLAM_LOG__=[];var t=document.querySelectorAll(\'#jl-debug-panel tbody tr\');t.forEach(function(x){x.remove();});})();" style="margin-left:8px;background:#444;color:#eee;border:0;padding:4px 8px;border-radius:4px;cursor:pointer;">clear</button>'
-              . '</div>'
-              . '<div id="jl-debug-body" style="max-height:260px;overflow:auto;display:block;">'
-              . '<table style="border-collapse:collapse;width:100%">'
-              . '<thead><tr style="background:#222"><th style="text-align:left;padding:6px;border-bottom:1px solid #333;">source</th><th style="text-align:left;padding:6px;border-bottom:1px solid #333;">locale</th><th style="text-align:left;padding:6px;border-bottom:1px solid #333;">key</th><th style="text-align:left;padding:6px;border-bottom:1px solid #333;">output</th></tr></thead>'
-              . '<tbody>'+ $rows +'</tbody></table></div></div>'
-              . $curlBox
-              . '<script>(function(){try{var d=window.__JAZYKOLAM_LOG__||[];var tb=document.querySelector("#jl-debug-panel tbody");if(tb){d.forEach(function(i){var tr=document.createElement("tr");tr.innerHTML="<td>"+i.source+"</td><td>"+i.locale+"</td><td><code>"+i.key+"</code></td><td><code>"+String(i.out).substring(0,120)+"</code></td>";tb.appendChild(tr);});}}catch(e){}})();</script>';
-        return $html;
+        $key = $args[0] ?? '';
+        $params = $args[1] ?? [];
+        if (!is_array($params)) {
+            $params = (array)$params;
+        }
+
+        $locale = $params['lang'] ?? null;
+        if (isset($params['lang'])) {
+            unset($params['lang']);
+        }
+        $locale = $locale ?: $this->getActiveLocale();
+
+        $text = $this->language->translate([$key], $params);
+        $text = is_array($text) ? json_encode($text) : (string)$text;
+
+        self::$debugLog[] = sprintf('t(%s,%s)', $key, $locale);
+
+        return $this->wrapInline($key, $locale, $text);
+    }
+
+    /**
+     * Replacement for |nicetime when auto_override.nicetime is enabled.
+     */
+    public function autoNicetime(...$args): string
+    {
+        $value = $args[0] ?? null;
+        $locale = $this->getActiveLocale();
+
+        $out = $this->jazykolamTime($value, $locale);
+
+        self::$debugLog[] = sprintf('nicetime(%s,%s)', (string)$value, $locale);
+
+        return $out;
+    }
+
+    /* ========= Explicit Jazykolam filters ========= */
+
+    public function jazykolamPlural($count, array $forms, ?string $locale = null): string
+    {
+        $locale = $locale ?: $this->getActiveLocale();
+        $category = $this->pluralCategory($locale, (float)$count);
+
+        $order = $this->pluralOrder($locale);
+        $text = null;
+
+        // Forms as ['one' => '', 'few' => '', 'other' => '']
+        if (isset($forms[$category])) {
+            $text = $forms[$category];
+        } else {
+            // fallback in defined order
+            foreach ($order as $cat) {
+                if (isset($forms[$cat])) {
+                    $text = $forms[$cat];
+                    break;
+                }
+            }
+        }
+
+        if ($text === null) {
+            $text = (string)reset($forms);
+        }
+
+        $text = $this->interpolate($text, $count);
+
+        self::$debugLog[] = sprintf('plural(%s,%s,%s)', json_encode($forms), $count, $locale);
+
+        // No inline wrapper here because this is usually direct literal usage
+        return $text;
+    }
+
+    public function jazykolamMonth($value, string $form = 'long', ?string $locale = null): string
+    {
+        $locale = $locale ?: $this->getActiveLocale();
+        $month = $this->normalizeMonth($value);
+        if ($month < 1 || $month > 12) {
+            return '';
+        }
+
+        $names = $this->getMonthNames($locale);
+        $index = $month - 1;
+
+        $result = $names[$form][$index] ?? $names['long'][$index] ?? '';
+
+        self::$debugLog[] = sprintf('month(%d,%s,%s)', $month, $form, $locale);
+
+        return $result;
+    }
+
+    public function jazykolamTime($value, ?string $locale = null, $now = null): string
+    {
+        $locale = $locale ?: $this->getActiveLocale();
+        $nowTs = $this->toTimestamp($now ?: time());
+        $diff = $this->valueToDeltaSeconds($value, $nowTs);
+
+        $dir = $diff >= 0 ? 'future' : 'past';
+        $sec = abs($diff);
+
+        if ($sec < 60) {
+            $n = $sec;
+            $unit = 'second';
+        } elseif ($sec < 3600) {
+            $n = floor($sec / 60);
+            $unit = 'minute';
+        } elseif ($sec < 86400) {
+            $n = floor($sec / 3600);
+            $unit = 'hour';
+        } elseif ($sec < 86400 * 30) {
+            $n = floor($sec / 86400);
+            $unit = 'day';
+        } elseif ($sec < 86400 * 365) {
+            $n = floor($sec / (86400 * 30));
+            $unit = 'month';
+        } else {
+            $n = floor($sec / (86400 * 365));
+            $unit = 'year';
+        }
+
+        $key = sprintf('JZK.NICETIME.%s.%s', strtoupper($dir), strtoupper($unit));
+        $forms = $this->language->translate([$key], ['%count%' => $n]);
+        if (is_array($forms)) {
+            // Support ICU-lite like structure
+            $text = $this->jazykolamPlural($n, $forms, $locale);
+        } else {
+            $text = strtr((string)$forms, ['%count%' => $n, '{count}' => $n, '#'=> $n]);
+        }
+
+        self::$debugLog[] = sprintf('time(%s,%s) => %s', (string)$value, $locale, $text);
+
+        return $text;
+    }
+
+    public function debugFilter($value): string
+    {
+        if (!$this->isDebugEnabled()) {
+            return (string)$value;
+        }
+        return '<span class="jazykolam-debug">' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span>';
+    }
+
+    /* ========= Twig functions ========= */
+
+    public function setLocaleFunction(?string $locale = null): string
+    {
+        self::$localeOverride = $locale ? (string)$locale : null;
+        return '';
+    }
+
+    public function debugFunction($value): string
+    {
+        return $this->debugFilter($value);
+    }
+
+    public function debugPanelFunction(): string
+    {
+        if (!$this->isDebugEnabled()) {
+            return '';
+        }
+        $out = '<div class="jazykolam-debug-panel">';
+        foreach (self::$debugLog as $row) {
+            $out .= htmlspecialchars((string)$row, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "<br />";
+        }
+        $out .= '</div>';
+        return $out;
     }
 
     public function debugConsoleFunction(): string
-    { if(!$this->isDebugEnabled() && empty($this->grav['uri']->query('jazykolam_debug'))) return ''; $log=json_encode(self::$debugLog, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); return '<script>window.__JAZYKOLAM_LOG__='+ $log +';(function(){try{var d=window.__JAZYKOLAM_LOG__;if(Array.isArray(d)&&d.length){console.group("Jazykolam DEBUG");console.table(d.map(function(x){return {source:x.source,locale:x.locale,key:x.key,out:x.out};}));console.groupEnd();}}catch(e){}})();</script>'; }
+    {
+        if (!$this->isDebugEnabled() || empty(self::$debugLog)) {
+            return '';
+        }
+        $json = json_encode(array_values(self::$debugLog));
+        return "<script>(function(){try{console.group && console.group('Jazykolam');var d={$json};for(var i=0;i<d.length;i++){console.log(d[i]);}console.groupEnd && console.groupEnd();}catch(e){}})();</script>";
+    }
 
-    protected function maybeDebugWrap(string $out, array $info): string
-    { if(!$this->isDebugEnabled() && empty($this->grav['uri']->query('jazykolam_debug'))) return $out; $max=(int)($this->config['debug']['max_entries']??200); $entry=['source'=>$info['source']??'', 'key'=>$info['key']??'', 'locale'=>$info['locale']??'', 'meta'=>$info['meta']??[], 'out'=>$out]; self::$debugLog[]=$entry; if(count(self::$debugLog)>$max) array_shift(self::$debugLog); $prefix=(string)($this->config['debug']['marker_prefix']??'‹JL:'); $suffix=(string)($this->config['debug']['marker_suffix']??'›'); $badge=(string)($this->config['debug']['badge']??'JL'); $attrs=sprintf('data-jl-source="%s" data-jl-key="%s" data-jl-locale="%s"', htmlspecialchars($entry['source'],ENT_QUOTES), htmlspecialchars($entry['key'],ENT_QUOTES), htmlspecialchars($entry['locale'],ENT_QUOTES)); $mode=(string)($this->config['debug']['mode']??'inline'); if($mode==='inline'){ return sprintf('<span class="jl-debug" %s>%s%s%s<sup class="jl-badge" style="font-size:9px;background:#f39c12;color:#000;padding:1px 3px;border-radius:3px;margin-left:2px;">%s</sup></span>', $attrs, htmlspecialchars($prefix,ENT_QUOTES), $out, htmlspecialchars($suffix,ENT_QUOTES), htmlspecialchars($badge,ENT_QUOTES)); } return sprintf('<span class="jl-debug" %s>%s<sup class="jl-badge" style="font-size:9px;background:#f39c12;color:#000;padding:1px 3px;border-radius:3px;margin-left:2px;">%s</sup></span>', $attrs, $out, htmlspecialchars($badge,ENT_QUOTES)); }
+    /* ========= Inline edit integration ========= */
 
-    protected function isDebugEnabled(): bool { return (bool)($this->config['debug']['enabled']??false); }
+    public static function getDebugLog(): array
+    {
+        return self::$debugLog;
+    }
 
-    protected function getActiveLocale(): string { if(self::$localeOverride) return self::$localeOverride; $cfg=(string)($this->config['default_locale']??''); if($cfg) return $cfg; $lang=$this->language->getLanguage(); return $lang?:'en'; }
-    protected function translate(string $key, array $params=[], ?string $locale=null) { return $this->language->translate([$key], $params); }
-    protected function translateRaw(string $key,string $locale){ try{$data=$this->language->getTranslation($locale); if(is_array($data)){ $parts=explode('.',$key); $val=$data; foreach($parts as $p){ if(!is_array($val)||!array_key_exists($p,$val)){ $val=null; break; } $val=$val[$p]; } if($val!==null) return $val; } }catch(\Throwable $e){} return $key; }
-    protected function toTimestamp($v): int { if($v instanceof \DateTimeInterface) return $v->getTimestamp(); if(is_int($v)) return $v; if(is_numeric($v)) return (int)$v; $ts=strtotime((string)$v); return $ts!==false?$ts:time(); }
-    protected function valueToDeltaSeconds($v,int $now): int { if($v instanceof \DateTimeInterface) return $v->getTimestamp()-$now; if(is_int($v)||is_float($v)) return (int)$v; $ts=strtotime((string)$v); return $ts!==false?$ts-$now:0; }
-    protected function normalizeMonth($v): int { if($v instanceof \DateTimeInterface) return (int)$v->format('n'); if(is_numeric($v)) return (int)$v; $s=trim((string)$v); if($s==='') return (int)date('n'); if(preg_match('~^(\d{4})-(\d{2})-(\d{2})~',$s,$m)) return (int)$m[2]; return (int)$s; }
-    protected function interpolate($text,$count): string { $out=(string)$text; if(strpos($out,'{{count}}')!==false) $out=str_replace('{{count}}',(string)$count,$out); elseif(strpos($out,'%d')!==false) $out=sprintf($out,$count); return $out; }
-    protected function pluralCategory(string $locale,float $n): string { $b=strtolower(substr($locale,0,2)); switch($b){ case 'cs': case 'sk': if((int)$n==1) return 'one'; $i=(int)$n; if($i>=2&&$i<=4) return 'few'; return 'other'; case 'pl': $i=(int)$n; $v=$n-$i!=0.0; if($i==1&&!$v) return 'one'; $n10=$i%10; $n100=$i%100; if(!$v&&in_array($n10,[2,3,4],true)&&!in_array($n100,[12,13,14],true)) return 'few'; if(!$v&&($i!=1)&&(in_array($n10,[0,1,5,6,7,8,9],true)||in_array($n100,[12,13,14],true))) return 'many'; return 'other'; case 'fr': if($n>=0&&$n<2) return 'one'; return 'other'; default: return ((int)$n==1)?'one':'other'; } }
-    protected function pluralOrder(string $locale): array { $b=strtolower(substr($locale,0,2)); switch($b){ case 'cs': case 'sk': return ['one','few','other']; case 'pl': return ['one','few','many','other']; case 'fr': return ['one','other']; default: return ['one','other']; } }
+    protected function wrapInline(string $key, string $locale, string $output): string
+    {
+        if (!$this->isInlineEditActive()) {
+            return $output;
+        }
+
+        $attrs = sprintf(
+            'class="jazykolam-inline" data-jazykolam-key="%s" data-jazykolam-locale="%s"',
+            htmlspecialchars($key, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+            htmlspecialchars($locale, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+        );
+
+        return sprintf('<span %s>%s</span>', $attrs, htmlspecialchars($output, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+    }
+
+    protected function isInlineEditActive(): bool
+    {
+        $cfg = (array)$this->config;
+        if (empty($cfg['inline_edit']['enabled'])) {
+            return false;
+        }
+
+        $user = $this->grav['user'] ?? null;
+        if (!$user || !$user->authenticated) {
+            return false;
+        }
+
+        $allowed = (array)($cfg['inline_edit']['allowed_roles'] ?? ['admin']);
+        $ok = false;
+        foreach ($allowed as $role) {
+            if ($user->authorize($role)) {
+                $ok = true;
+                break;
+            }
+        }
+        if (!$ok) {
+            return false;
+        }
+
+        $uri = $this->grav['uri'] ?? null;
+        if ($uri && ($uri->query('jazykolam_inline') == 1 || $uri->param('jazykolam_inline') == 1)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /* ========= Helpers ========= */
+
+    protected function isDebugEnabled(): bool
+    {
+        return (bool)($this->config['debug']['enabled'] ?? false);
+    }
+
+    protected function getActiveLocale(): string
+    {
+        if (self::$localeOverride !== null) {
+            return self::$localeOverride;
+        }
+
+        $lang = $this->language->getLanguage();
+        if (!$lang) {
+            $lang = $this->language->getDefault() ?: 'en';
+        }
+
+        return $lang;
+    }
+
+    protected function toTimestamp($v): int
+    {
+        if ($v instanceof \DateTimeInterface) {
+            return (int)$v->format('U');
+        }
+        if (is_numeric($v)) {
+            return (int)$v;
+        }
+        $ts = strtotime((string)$v);
+        return $ts !== false ? $ts : time();
+    }
+
+    protected function valueToDeltaSeconds($v, int $now): int
+    {
+        if ($v instanceof \DateTimeInterface) {
+            return (int)$v->format('U') - $now;
+        }
+        if (is_numeric($v)) {
+            return (int)$v - $now;
+        }
+        $ts = strtotime((string)$v);
+        return $ts !== false ? $ts - $now : 0;
+    }
+
+    protected function normalizeMonth($v): int
+    {
+        if (is_numeric($v)) {
+            return (int)$v;
+        }
+        $s = (string)$v;
+        if (preg_match('~^\d{4}-(\d{2})-\d{2}$~', $s, $m)) {
+            return (int)$m[1];
+        }
+        return (int)$s;
+    }
+
+    protected function getMonthNames(string $locale): array
+    {
+        // Minimal built-in set; can be overridden by user translations
+        $cs = [
+            'long'  => ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'],
+            'short' => ['led','úno','bře','dub','kvě','čer','čvc','srp','zář','říj','lis','pro'],
+            'gen'   => ['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'],
+        ];
+        $en = [
+            'long'  => ['January','February','March','April','May','June','July','August','September','October','November','December'],
+            'short' => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+            'gen'   => ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        ];
+
+        switch (substr($locale, 0, 2)) {
+            case 'cs': return $cs;
+            case 'en': return $en;
+            default:   return $en;
+        }
+    }
+
+    protected function interpolate(string $text, $count): string
+    {
+        $text = str_replace(['{count}', '%count%', '#'], (string)$count, $text);
+        return $text;
+    }
+
+    protected function pluralCategory(string $locale, float $n): string
+    {
+        $lang = substr($locale, 0, 2);
+        $i = (int)$n;
+
+        switch ($lang) {
+            case 'cs':
+            case 'sk':
+                if ($i == 1) return 'one';
+                if ($i >= 2 && $i <= 4) return 'few';
+                return 'other';
+            case 'pl':
+                if ($i == 1) return 'one';
+                if ($i % 10 >= 2 && $i % 10 <= 4 && ($i % 100 < 12 || $i % 100 > 14)) return 'few';
+                return 'other';
+            case 'en':
+            default:
+                return ($i == 1) ? 'one' : 'other';
+        }
+    }
+
+    protected function pluralOrder(string $locale): array
+    {
+        $lang = substr($locale, 0, 2);
+        switch ($lang) {
+            case 'cs':
+            case 'sk':
+            case 'pl':
+                return ['one', 'few', 'other'];
+            default:
+                return ['one', 'other'];
+        }
+    }
 }
