@@ -23,3 +23,21 @@ debug:
   max_entries: 200
   console: false
   copy_curl: true
+
+
+inline_edit:
+  enabled: false
+  allowed_roles:
+    - admin
+
+auto_detect_locale:
+  enabled: false
+  fallback_locale: en
+
+date_formats:
+  cs:
+    short: "j.n.Y"
+    long: "j. F Y"
+  en:
+    short: "m/d/Y"
+    long: "F j, Y"
