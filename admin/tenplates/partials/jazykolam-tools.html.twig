@@ -1,12 +1,48 @@
-
 <div class="card">
   <div class="card-header">Jazykolam – Tools</div>
   <div class="card-body">
-    <p>Rychlé akce pro ladění. Tyto akce působí na běžící instanci (neperzistentní):</p>
-    <button class="button" onclick="localStorage.setItem('jazykolam_debug','1');alert('Runtime flag set. Reload page with ?jazykolam_debug=1');">Enable (runtime)</button>
-    <button class="button" onclick="localStorage.removeItem('jazykolam_debug');alert('Runtime flag cleared');">Disable (runtime)</button>
+    <p>Rychlé akce (perzistentní):</p>
+    <form method="post">
+      <input type="hidden" name="task" value="jazykolamEnable" />
+      <button class="button">Enable markers</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamDisable" />
+      <button class="button">Disable markers</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamInjectOn" />
+      <button class="button">Inject: ON</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamInjectSmart" />
+      <button class="button">Inject: SMART</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamInjectOff" />
+      <button class="button">Inject: OFF</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamConsoleOn" />
+      <button class="button">Console: ON</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+    <form method="post" class="mt-1">
+      <input type="hidden" name="task" value="jazykolamConsoleOff" />
+      <button class="button">Console: OFF</button>
+      <input type="hidden" name="admin-nonce" value="{{ nonce('admin-form', 'admin-nonce') }}" />
+    </form>
+
+    <hr />
+    <p>Runtime (neperzistentní):</p>
+    <button class="button" onclick="localStorage.setItem('jazykolam_debug','1');alert('Runtime flag set. Reload with ?jazykolam_debug=1');">Enable runtime</button>
+    <button class="button" onclick="localStorage.removeItem('jazykolam_debug');alert('Runtime flag cleared');">Disable runtime</button>
     <button class="button" onclick="(function(){try{var d=window.__JAZYKOLAM_LOG__||[];navigator.clipboard.writeText(JSON.stringify(d));alert('Copied JSON');}catch(e){alert('Clipboard failed, see console');console.log(window.__JAZYKOLAM_LOG__);}})();">Copy log JSON</button>
     <button class="button" onclick="(function(){window.__JAZYKOLAM_LOG__=[];alert('Runtime log cleared');})();">Clear log</button>
-    <p class="mt-1">Perzistentní nastavení (enable/inject/console) najdeš v záložce <em>Plugin → Jazykolam</em>.</p>
   </div>
 </div>
