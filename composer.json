@@ -1,2 +1,8 @@
 
-{ "name": "svatopluk/grav-plugin-jazykolam", "type": "grav-plugin", "description": "i18n Twig filters with Gantry 5 integration", "license": "MIT", "require": { "php": ">=7.4" } }
+{
+  "name": "svatopluk/grav-plugin-jazykolam",
+  "type": "grav-plugin",
+  "description": "i18n Twig filters for Grav (pluralization, months, relative time) with per-render locale and Gantry 5 integration",
+  "license": "MIT",
+  "require": { "php": ">=7.4" }
+}

@@ -21,14 +21,26 @@ class JazykolamPlugin extends Plugin
         /** @var Twig $twig */
         $twig = $this->grav['twig'];
         $ext = new \JazykolamTwigExtension($this->grav);
-        $twig->twig()->addExtension($ext);
+        $env = $twig->twig();
+        $env->addExtension($ext);
+
+        // Auto overrides in Grav Twig
+        $cfg = (array)$this->config->get('plugins.jazykolam.auto_override');
+        if (!empty($cfg['t'])) {
+            $env->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
+            $env->addFilter(new \Twig\TwigFilter('tu', [$ext, 'autoT'], ['is_variadic' => true]));
+            $env->addFilter(new \Twig\TwigFilter('tl', [$ext, 'autoT'], ['is_variadic' => true]));
+        }
+        if (!empty($cfg['nicetime'])) {
+            $env->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'autoNicetime']));
+        }
 
         $this->maybeRegisterGantry($ext);
     }
 
     public function onThemeInitialized(): void
     {
-        // In case Gantry initializes after Twig, try again
+        // ensure Gantry registration even if Gantry initializes later
         if (class_exists('JazykolamTwigExtension', false)) {
             $ext = new \JazykolamTwigExtension($this->grav);
             $this->maybeRegisterGantry($ext);
@@ -40,25 +52,25 @@ class JazykolamPlugin extends Plugin
         $cfg = (array)$this->config->get('plugins.jazykolam.auto_override');
         $gantryOn = (bool)($cfg['gantry'] ?? true);
         if (!$gantryOn) return;
-
-        // Only for Gantry-powered themes
         if (!class_exists('Gantry\Framework\Gantry')) return;
         try {
             $gantry = \Gantry\Framework\Gantry::instance();
             if (!$gantry || !isset($gantry['theme'])) return;
             $renderer = $gantry['theme']->renderer(); // Twig Environment
-            // Reuse our extension and (re)register explicit filters
+            // Explicit filters
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_plural', [$ext, 'pluralFilter']));
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_month', [$ext, 'monthFilter']));
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_time', [$ext, 'timeFilter']));
-
-            // Auto overrides
+            // Functions
+            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_set_locale', [$ext, 'setLocaleFunction']));
+            // Auto overrides & aliases
             $renderer->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('tu', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('tl', [$ext, 'autoT'], ['is_variadic' => true]));
+            $renderer->addFilter(new \Twig\TwigFilter('trans', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'autoNicetime']));
         } catch (\Throwable $e) {
-            // swallow – Gantry not ready or not present
+            // ignore
         }
     }
 }

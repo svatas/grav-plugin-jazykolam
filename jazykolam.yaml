@@ -1,5 +1,5 @@
 
-# v1.3.0
+# v1.3.1
 enabled: true
 default_locale: ''
 prefer_languages_yaml: true
@@ -7,12 +7,14 @@ prefer_languages_yaml: true
 auto_override:
   t: true
   nicetime: true
-  gantry: true   # also register filters & overrides into Gantry's Twig (if Gantry is present)
+  gantry: true
 
 locales:
   en:
     plural: { order: [one, other] }
-    months: { }
+    months:
+      long: { 1: January, 2: February, 3: March, 4: April, 5: May, 6: June, 7: July, 8: August, 9: September, 10: October, 11: November, 12: December }
+      short: { 1: Jan, 2: Feb, 3: Mar, 4: Apr, 5: May, 6: Jun, 7: Jul, 8: Aug, 9: Sep, 10: Oct, 11: Nov, 12: Dec }
     relative:
       now: just now
       past:
@@ -21,7 +23,10 @@ locales:
         minute: { one: in a minute, other: 'in {{count}} minutes' }
   cs:
     plural: { order: [one, few, other] }
-    months: { }
+    months:
+      long: { 1: leden, 2: únor, 3: březen, 4: duben, 5: květen, 6: červen, 7: červenec, 8: srpen, 9: září, 10: říjen, 11: listopad, 12: prosinec }
+      short: { 1: led, 2: úno, 3: bře, 4: dub, 5: kvě, 6: čvn, 7: čvc, 8: srp, 9: zář, 10: říj, 11: lis, 12: pro }
+      genitive: { 1: ledna, 2: února, 3: března, 4: dubna, 5: května, 6: června, 7: července, 8: srpna, 9: září, 10: října, 11: listopadu, 12: prosince }
     relative:
       now: právě teď
       past:
