@@ -2,7 +2,7 @@
 {
   "name": "svatopluk/grav-plugin-jazykolam",
   "type": "grav-plugin",
-  "description": "i18n Twig filters with per-render locale, DEBUG markers/panel/console, and Gantry 5 integration",
+  "description": "i18n Twig filters with per-render locale, auto-injected DEBUG panel/console, and Gantry 5 integration",
   "license": "MIT",
   "require": { "php": ">=7.4" }
 }

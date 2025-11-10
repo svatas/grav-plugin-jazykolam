@@ -2,9 +2,9 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.3.3
+version: 1.4.0
 schema: 1.0.0
-description: Advanced i18n filters with per-render locale and DEBUG helpers (markers, panel, console). Gantry 5 integration included.
+description: i18n Twig filters with per-render locale, DEBUG markers/panel/console, Gantry 5 integration, and auto-injected panel.
 icon: language
 license: MIT
 
@@ -58,7 +58,11 @@ form:
         debug.enabled:
           type: toggle
           label: Enable DEBUG markers
-          highlight: 0
+          default: 0
+          options: { 1: Enabled, 0: Disabled }
+        debug.inject:
+          type: toggle
+          label: Auto-inject panel & console (onOutputGenerated)
           default: 0
           options: { 1: Enabled, 0: Disabled }
         debug.mode:

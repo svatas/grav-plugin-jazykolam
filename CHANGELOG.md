@@ -1,3 +1,6 @@
-# 1.3.3 - 2025-11-07
-- Admin Debug toggle + console export option
-- Minor improvements to debug markers and Gantry registration
+
+# Changelog
+
+## 1.4.0 - 2025-11-07
+- Auto injected debug panel & console via onOutputGenerated
+- Admin mini-tools section with quick buttons
