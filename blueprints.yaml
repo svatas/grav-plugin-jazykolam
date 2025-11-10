@@ -2,8 +2,8 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.1.0	schema: 1.0.0
-description: Advanced i18n filters (pluralization, months, relative time) for Twig.
+version: 1.2.0	schema: 1.0.0
+description: Advanced i18n filters (pluralization, months, relative time) for Twig. Optional auto-overrides for |t and |nicetime.
 icon: language
 author:
   name: Svatopluk Vít
@@ -42,3 +42,24 @@ form:
         1: Yes
         0: No
 
+    auto_override:
+      type: fieldset
+      title: Automatic Overrides
+      collapsed: false
+      fields:
+        auto_override.t:
+          type: toggle
+          label: Override |t, |tu, |tl filters (plural/ICU)
+          highlight: 1
+          default: 1
+          options:
+            1: Yes
+            0: No
+        auto_override.nicetime:
+          type: toggle
+          label: Override |nicetime (use jazykolam_time)
+          highlight: 1
+          default: 1
+          options:
+            1: Yes
+            0: No
