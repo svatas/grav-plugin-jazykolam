@@ -87,3 +87,17 @@ All notable changes to this project are documented here.
 ### Note
 - Frontend inline editing is not enabled yet – 1.6.1 focuses on a safe Admin-based workflow.
 
+## [1.6.2] – 2025-11-09
+### Added
+- Experimental **frontend inline translation editor**.
+- Enabled via `inline_edit.enabled: true` and the `?jazykolam_inline=1` URL flag.
+- Clicking on a highlighted `span.jazykolam-inline` allows editing the translation.
+
+### Security & Behaviour
+- Only authenticated users with roles from `inline_edit.allowed_roles` (default `admin`) may edit.
+- Saves via protected `/task/jazykolam.inlineSave` endpoint with a nonce.
+- Writes into `user/languages.jazykolam.yaml`, consistent with 1.6.1.
+
+### Note
+- Inline editor is disabled by default and has no impact on normal site visitors.
+

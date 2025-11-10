@@ -151,3 +151,28 @@ See [CHANGELOG.md](./CHANGELOG.md) and [CHANGELOG_en.md](./CHANGELOG_en.md) for 
 - Displays a table of discovered translation keys and their language values.
 - Edits are saved into `user/languages.jazykolam.yaml` which overrides other sources.
 - Restricted to `admin` role.
+
+
+## ✏️ Inline translation editor (since 1.6.2)
+
+Experimental feature to edit translations directly on the frontend.
+
+**How to enable:**
+- in `user/config/plugins/jazykolam.yaml`:
+  ```yaml
+  inline_edit:
+    enabled: true
+    allowed_roles:
+      - admin
+  ```
+- open any page as an authenticated admin with `?jazykolam_inline=1` in the URL.
+
+**How it works:**
+- translated strings rendered via Jazykolam are wrapped in `<span class="jazykolam-inline" ...>`.
+- clicking such text opens a prompt to edit the translation.
+- on save, the change is sent to `/task/jazykolam.inlineSave` and written into `user/languages.jazykolam.yaml`.
+
+**Security:**
+- only logged-in users with allowed roles may save,
+- requests are protected with a nonce,
+- for normal visitors the feature is completely inactive and no extra JS is injected.

@@ -87,3 +87,17 @@ Všechny významné změny v tomto projektu jsou popsány v tomto souboru.
 ### Poznámka
 - Inline editace na frontendu zatím není aktivní – 1.6.1 přidává bezpečný základ v Admin UI.
 
+## [1.6.2] – 2025-11-09
+### Přidáno
+- Experimentální **inline editor překladů** na frontendu.
+- Aktivace přes konfiguraci `inline_edit.enabled: true` a parametr `?jazykolam_inline=1`.
+- Kliknutím na zvýrazněný text (obalený `span.jazykolam-inline`) lze upravit překlad.
+
+### Bezpečnost a omezení
+- Upravovat mohou pouze přihlášení uživatelé s rolí z `inline_edit.allowed_roles` (výchozí `admin`).
+- Uložení probíhá přes chráněný endpoint `/task/jazykolam.inlineSave` s nonce.
+- Změny se ukládají do `user/languages.jazykolam.yaml` stejně jako v 1.6.1.
+
+### Poznámka
+- Inline editor je defaultně vypnutý a nemá vliv na výkon běžného webu.
+

@@ -151,3 +151,28 @@ Více informací: viz [CHANGELOG.md](./CHANGELOG.md).
 - Stránka zobrazuje tabulku všech detekovaných klíčů a jejich překladů.
 - Úpravy se ukládají do `user/languages.jazykolam.yaml`, který má prioritu.
 - Přístup pouze pro roli `admin`.
+
+
+## ✏️ Inline editor překladů (od verze 1.6.2)
+
+Experimentální funkce pro rychlou úpravu překladů přímo na frontendu.
+
+**Jak zapnout:**
+- v `user/config/plugins/jazykolam.yaml`:
+  ```yaml
+  inline_edit:
+    enabled: true
+    allowed_roles:
+      - admin
+  ```
+- stránku otevři jako přihlášený admin s parametrem `?jazykolam_inline=1`.
+
+**Jak to funguje:**
+- přeložené řetězce obalené Jazykolamem se vykreslí jako `<span class="jazykolam-inline" ...>`.
+- kliknutím na text se zobrazí dialog pro úpravu překladu.
+- po potvrzení se změna uloží do `user/languages.jazykolam.yaml` (přes endpoint `/task/jazykolam.inlineSave`).
+
+**Bezpečnost:**
+- pouze přihlášený uživatel s povolenou rolí může cokoliv uložit,
+- požadavek je chráněn nonce tokenem,
+- pro běžné návštěvníky je funkce neaktivní a nevkládá žádný JavaScript.
