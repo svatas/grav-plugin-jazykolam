@@ -1,21 +1,25 @@
 name: Jazykolam
-version: 1.6.4
-description: 'Advanced translation overlay for Grav with Admin Translation Manager and optional inline editor.'
+slug: jazykolam
+type: plugin
+version: 1.6.5
+description: 'Jazykolam: override-based translation layer for Grav with Admin Translation Manager and optional inline editor.'
 icon: language
+
 author:
   name: 'Svatopluk Vít'
   email: 'svatopluk@example.com'
+
 homepage: 'https://github.com/svatas/grav-plugin-jazykolam'
-keywords: translation, multilingual, language, overrides, inline, admin
-bugs: 'https://github.com/svatas/grav-plugin-jazykolam/issues'
+keywords: jazykolam, translation, multilingual, language, overrides, inline, admin
 license: MIT
 
 form:
   validation: loose
   fields:
+
     enabled:
       type: toggle
-      label: PLUGIN_ADMIN.STATUS
+      label: PLUGIN_ADMIN.PLUGIN_STATUS
       highlight: 1
       default: 1
       options:
@@ -24,85 +28,77 @@ form:
       validate:
         type: bool
 
-    auto_override:
-      type: section
-      title: 'Automatic overrides'
-      fields:
-        auto_override.t:
-          type: toggle
-          label: 'Override |t and |trans via Jazykolam'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes'
-            0: 'No'
-          validate:
-            type: bool
-        auto_override.nicetime:
-          type: toggle
-          label: 'Override |nicetime via Jazykolam'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes'
-            0: 'No'
-          validate:
-            type: bool
-        auto_override.gantry:
-          type: toggle
-          label: 'Integrate with Gantry 5 renderer'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes'
-            0: 'No'
-          validate:
-            type: bool
+    auto_override.t:
+      type: toggle
+      label: 'Override |t and |trans with Jazykolam'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
 
-    debug:
-      type: section
-      title: 'Debug'
-      fields:
-        debug.enabled:
-          type: toggle
-          label: 'Enable debug logging'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes'
-            0: 'No'
-          validate:
-            type: bool
-        debug.inject:
-          type: toggle
-          label: 'Inject debug panel into HTML output'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes'
-            0: 'No'
-          validate:
-            type: bool
+    auto_override.nicetime:
+      type: toggle
+      label: 'Override |nicetime with Jazykolam'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
 
-    inline_edit:
-      type: section
-      title: 'Inline editor'
-      fields:
-        inline_edit.enabled:
-          type: toggle
-          label: 'Enable inline translation editor / inspect'
-          highlight: 0
-          default: 0
-          options:
-            1: 'Yes (admins only)'
-            0: 'No'
-          validate:
-            type: bool
-        inline_edit.allowed_roles:
-          type: selectize
-          label: 'Allowed roles for inline editor'
-          classes: fancy
-          default:
-            - admin
-          validate:
-            type: commalist
+    auto_override.gantry:
+      type: toggle
+      label: 'Integrate with Gantry 5 (if present)'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
+
+    debug.enabled:
+      type: toggle
+      label: 'Enable Jazykolam debug log'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
+
+    debug.inject:
+      type: toggle
+      label: 'Inject debug panel into HTML output'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
+
+    inline_edit.enabled:
+      type: toggle
+      label: 'Enable frontend inline editor (admins only)'
+      highlight: 0
+      default: 0
+      options:
+        1: 'Yes'
+        0: 'No'
+      validate:
+        type: bool
+
+    inline_edit.allowed_roles:
+      type: selectize
+      label: 'Roles allowed to use inline editor'
+      classes: fancy
+      default:
+        - admin
+      validate:
+        type: commalist

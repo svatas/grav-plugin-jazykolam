@@ -4,6 +4,7 @@ namespace Grav\Plugin;
 use Grav\Common\Plugin;
 use Grav\Common\Grav;
 use Grav\Common\File\CompiledYamlFile;
+use Grav\Common\Page\Page;
 use Grav\Common\Yaml;
 use RocketTheme\Toolbox\Event\Event;
 
@@ -13,7 +14,6 @@ class JazykolamPlugin extends Plugin
     {
         return [
             'onPluginsInitialized' => ['onPluginsInitialized', 0],
-            // Frontend inline save endpoint (used via /task/jazykolam.inlineSave)
             'onTask.jazykolam.inlineSave' => ['onInlineSave', 0],
         ];
     }
@@ -24,6 +24,8 @@ class JazykolamPlugin extends Plugin
             $this->enable([
                 'onAdminMenu' => ['onAdminMenu', 0],
                 'onAdminControllerInit' => ['onAdminControllerInit', 0],
+                'onAdminPagesInitialized' => ['onAdminPagesInitialized', 0],
+                'onAdminTwigTemplatePaths' => ['onAdminTwigTemplatePaths', 0],
             ]);
         } else {
             $this->enable([
@@ -45,19 +47,21 @@ class JazykolamPlugin extends Plugin
 
         $cfg = (array)$this->config->get('plugins.jazykolam');
 
-        // Optional override of Grav core translation filters
+        // Optional override of |t, |trans via Jazykolam
         if (!empty($cfg['auto_override']['t'])) {
             $twig->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
             $twig->addFilter(new \Twig\TwigFilter('trans', [$ext, 'autoT'], ['is_variadic' => true]));
-            $twig->addFilter(new \Twig\TwigFilter('tu', [$ext, 'autoT'], ['is_variadic' => true]));
-            $twig->addFilter(new \Twig\TwigFilter('tl', [$ext, 'autoT'], ['is_variadic' => true]));
         }
 
+        // Optional override of |nicetime via Jazykolam
         if (!empty($cfg['auto_override']['nicetime'])) {
-            $twig->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'jazykolamTime'], ['is_variadic' => true]));
+            $twig->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'jazykolamTime'], ['is_safe' => ['html']]));
         }
     }
 
+    /**
+     * Optional Gantry 5 integration: add extension to Gantry renderer if enabled and present.
+     */
     public function onThemeInitialized(): void
     {
         $cfg = (array)$this->config->get('plugins.jazykolam');
@@ -65,7 +69,7 @@ class JazykolamPlugin extends Plugin
             return;
         }
 
-        if (!class_exists('\\Gantry\\Framework\\Gantry')) {
+        if (!class_exists('Gantry\\Framework\\Gantry')) {
             return;
         }
 
@@ -81,14 +85,17 @@ class JazykolamPlugin extends Plugin
             $renderer = $engine->renderer();
             $renderer->addExtension($ext);
         } catch (\Throwable $e) {
-            // Gantry integration is best-effort only.
+            // best-effort only
         }
     }
 
-    public function onOutputGenerated(Event $e): void
+    /**
+     * Inject inline editor JS (if active) and optional debug panel.
+     */
+    public function onOutputGenerated(Event $event): void
     {
         $cfg = (array)$this->config->get('plugins.jazykolam');
-        $response = $e['response'] ?? null;
+        $response = $event['response'] ?? null;
         if (!$response) {
             return;
         }
@@ -100,19 +107,12 @@ class JazykolamPlugin extends Plugin
 
         $content = (string)$response->getContent();
 
-        // Debug panel
+        // Debug panel using TwigExtension debug log
         if (!empty($cfg['debug']['enabled']) && !empty($cfg['debug']['inject'])
-            && class_exists('\JazykolamTwigExtension') && method_exists('\JazykolamTwigExtension', 'getDebugLog')) {
+            && class_exists('\JazykolamTwigExtension') && method_exists('\JazykolamTwigExtension', 'getDebugPanel')) {
 
-            $log = \JazykolamTwigExtension::getDebugLog();
-            if (!empty($log)) {
-                $panel = '<div id="jazykolam-debug-panel" style="position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow:auto;background:#111;color:#eee;font:12px monospace;z-index:9999;padding:8px;border-top:2px solid #e91e63;">';
-                $panel .= '<strong>Jazykolam debug</strong><br />';
-                foreach ($log as $row) {
-                    $panel .= htmlspecialchars((string)$row, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "<br />";
-                }
-                $panel .= '</div>';
-
+            $panel = \JazykolamTwigExtension::getDebugPanel();
+            if ($panel) {
                 if (stripos($content, '</body>') !== false) {
                     $content = preg_replace('~</body>~i', $panel . '</body>', $content, 1);
                 } else {
@@ -121,7 +121,7 @@ class JazykolamPlugin extends Plugin
             }
         }
 
-        // Inline editor / inspect JS – only if active for this request
+        // Inline editor JS only when active (based on query param + user)
         if ($this->isInlineEditActive()) {
             $nonce = $this->grav['utils']->getNonce('jazykolam-inline');
             $script = <<<HTML
@@ -193,8 +193,7 @@ class JazykolamPlugin extends Plugin
     var nonce = popup.dataset.nonce;
     var value = popup.querySelector('#jz-value').value;
     var xhr = new XMLHttpRequest();
-    var base = (window.GravAdmin && GravAdmin.config && GravAdmin.config.base_url_relative) ? GravAdmin.config.base_url_relative : '';
-    xhr.open('POST', base + '/task/jazykolam.inlineSave', true);
+    xhr.open('POST', window.location.pathname.replace(/\/$/, '') + '/task/jazykolam.inlineSave', true);
     xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
     xhr.onload = function(){
       if(xhr.status === 200){
@@ -205,19 +204,19 @@ class JazykolamPlugin extends Plugin
             popup.style.display = 'none';
             return;
           }
-          alert('Jazykolam: uložení selhalo: ' + (res.message || 'unknown error'));
+          alert('Jazykolam: save failed: ' + (res.message || 'unknown error'));
         } catch(e){
           span.textContent = value;
           popup.style.display = 'none';
         }
       } else {
-        alert('Jazykolam: chyba při ukládání ('+xhr.status+').');
+        alert('Jazykolam: HTTP ' + xhr.status);
       }
     };
     var body = 'key=' + encodeURIComponent(key) +
                '&locale=' + encodeURIComponent(locale) +
                '&value=' + encodeURIComponent(value) +
-               '&nonce=' + encodeURIComponent('%s');
+               '&nonce=' + encodeURIComponent(nonce);
     xhr.send(body);
   }
 
@@ -240,9 +239,9 @@ class JazykolamPlugin extends Plugin
       openPopup(span, '%s');
     }, false);
   }
-})();</script>
+})();
+</script>
 HTML;
-            $script = sprintf($script, $nonce, $nonce);
 
             if (stripos($content, '</body>') !== false) {
                 $content = preg_replace('~</body>~i', $script . '</body>', $content, 1);
@@ -252,22 +251,31 @@ HTML;
         }
 
         $response->setContent($content);
-        $e['response'] = $response;
+        $event['response'] = $response;
     }
 
+    /**
+     * Admin: show Jazykolam in sidebar.
+     */
     public function onAdminMenu(): void
     {
-        $this->grav['twig']->plugins_hooked_nav['Jazykolam'] = [
-            'route' => 'jazykolam',
-            'icon'  => 'fa-language',
-        ];
+        if (!isset($this->grav['twig']->plugins_hooked_nav['Jazykolam'])) {
+            $this->grav['twig']->plugins_hooked_nav['Jazykolam'] = [
+                'route' => 'jazykolam',
+                'icon'  => 'fa-language',
+            ];
+        }
     }
 
+    /**
+     * Admin controller routing & save handler.
+     */
     public function onAdminControllerInit(Event $event): void
     {
         $controller = $event['controller'];
-        $route = $controller->getRoute();
-        $task  = $controller->task;
+
+        $route = method_exists($controller, 'getRoute') ? $controller->getRoute() : null;
+        $task  = property_exists($controller, 'task') ? $controller->task : null;
 
         if ($route === 'jazykolam') {
             $this->prepareAdminTranslations();
@@ -298,16 +306,6 @@ HTML;
             }
         }
 
-        // Discover keys from templates (Twig)
-        foreach ($this->collectUsedKeys() as $key) {
-            if (!isset($matrix[$key])) {
-                $matrix[$key] = [];
-            }
-        }
-
-        ksort($matrix);
-
-        // Mark missing keys
         $missing = [];
         foreach ($matrix as $key => $langs) {
             foreach ($languages as $locale) {
@@ -344,7 +342,7 @@ HTML;
         $file = $this->getLangFile();
         $content = $file->exists() ? (array)$file->content() : [];
 
-        // Backup
+        // backup before save
         if ($file->exists() && !empty($content)) {
             $this->backupLangFile($file, $content);
         }
@@ -474,21 +472,16 @@ HTML;
 
     protected function json(array $data): void
     {
-        $grav = $this->grav;
-        $response = $grav['response'] ?? null;
         $json = json_encode($data);
 
-        if ($response) {
+        if (isset($this->grav['response'])) {
+            $response = $this->grav['response'];
             $response->headers->set('Content-Type', 'application/json; charset=utf-8');
             $response->setContent($json);
+            $this->grav->close();
         } else {
             header('Content-Type: application/json; charset=utf-8');
             echo $json;
-        }
-
-        if (method_exists($grav, 'close')) {
-            $grav->close();
-        } else {
             exit;
         }
     }
@@ -529,45 +522,32 @@ HTML;
         return false;
     }
 
-    protected function collectUsedKeys(): array
-    {
-        $locator = $this->grav['locator'];
-        $keys = [];
 
-        $paths = [];
-        $themes = $locator->findResources('theme://');
-        foreach ($themes as $t) {
-            $paths[] = $t;
-        }
-        $userThemes = $locator->findResource('user://themes', false);
-        if ($userThemes) {
-            $paths[] = $userThemes;
-        }
-        $userPlugins = $locator->findResource('user://plugins', false);
-        if ($userPlugins) {
-            $paths[] = $userPlugins;
-        }
-
-        $pattern = '~['"]([A-Z0-9_.:-]+)['"]\s*\|\s*(t|trans|tu|tl|jazykolam_t)~';
-
-        foreach ($paths as $base) {
-            if (!is_dir($base)) {
-                continue;
-            }
-            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base));
-            foreach ($it as $file) {
-                if (!$file->isFile()) continue;
-                if (substr($file->getFilename(), -5) !== '.twig') continue;
-                $code = @file_get_contents($file->getPathname());
-                if ($code === false) continue;
-                if (preg_match_all($pattern, $code, $m)) {
-                    foreach ($m[1] as $k) {
-                        $keys[$k] = true;
-                    }
-                }
-            }
-        }
-
-        return array_keys($keys);
+public function onAdminPagesInitialized(Event $event): void
+{
+    $admin = $this->grav['admin'] ?? null;
+    if (!$admin || $admin->route !== 'jazykolam') {
+        return;
     }
+
+    // Build admin page for Jazykolam using markdown definition.
+    $page = new Page;
+    $file = __DIR__ . '/admin/pages/jazykolam.md';
+
+    if (is_file($file)) {
+        $page->init(new \SplFileInfo($file));
+    }
+
+    $page->slug('jazykolam');
+    $page->template('jazykolam');
+
+    $event['page'] = $page;
+}
+
+public function onAdminTwigTemplatePaths(Event $event): void
+{
+    $paths = $event['paths'] ?? [];
+    $paths[] = __DIR__ . '/admin/templates';
+    $event['paths'] = $paths;
+}
 }
