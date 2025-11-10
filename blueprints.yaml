@@ -2,17 +2,9 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.2.0	schema: 1.0.0
-description: Advanced i18n filters (pluralization, months, relative time) for Twig. Optional auto-overrides for |t and |nicetime.
+version: 1.3.0	schema: 1.0.0
+description: Advanced i18n filters with auto overrides. Includes Gantry 5 integration for filters and nicetime.
 icon: language
-author:
-  name: Svatopluk Vít
-  email: example@example.com
-  url: https://example.com
-homepage: https://example.com/grav-plugin-jazykolam
-keywords: grav, plugin, i18n, pluralization, months, localization, timeago
-bugs: https://example.com/grav-plugin-jazykolam/issues
-license: MIT
 
 form:
   validation: strict
@@ -22,44 +14,36 @@ form:
       label: Plugin status
       highlight: 1
       default: 1
-      options:
-        1: Enabled
-        0: Disabled
-      validate:
-        type: bool
+      options: { 1: Enabled, 0: Disabled }
+      validate: { type: bool }
 
     default_locale:
       type: text
       label: Default locale (leave empty for active language)
-      placeholder: cs
 
     prefer_languages_yaml:
       type: toggle
       label: Prefer site languages.yaml overrides
       highlight: 1
       default: 1
-      options:
-        1: Yes
-        0: No
+      options: { 1: Yes, 0: No }
 
     auto_override:
       type: fieldset
       title: Automatic Overrides
-      collapsed: false
       fields:
         auto_override.t:
           type: toggle
-          label: Override |t, |tu, |tl filters (plural/ICU)
-          highlight: 1
+          label: Override |t, |tu, |tl
           default: 1
-          options:
-            1: Yes
-            0: No
+          options: { 1: Yes, 0: No }
         auto_override.nicetime:
           type: toggle
-          label: Override |nicetime (use jazykolam_time)
-          highlight: 1
+          label: Override |nicetime
           default: 1
-          options:
-            1: Yes
-            0: No
+          options: { 1: Yes, 0: No }
+        auto_override.gantry:
+          type: toggle
+          label: Register into Gantry Twig (if available)
+          default: 1
+          options: { 1: Yes, 0: No }

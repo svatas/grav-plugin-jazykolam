@@ -1,12 +1,11 @@
 
 # Changelog
 
+## 1.3.0 - 2025-11-07
+- Gantry 5 integration: register filters and auto-overrides into Gantry Twig environment
+
 ## 1.2.0 - 2025-11-07
-- New: **Auto overrides** for Grav filters `|t`, `|tu`, `|tl` (plural/ICU-lite) and `|nicetime` (relative time)
-- Goal: zero template changes where themes already use these filters
+- Auto overrides for |t and |nicetime (zero-template-change mode)
 
 ## 1.1.0 - 2025-11-07
-- New: `jazykolam_time` Twig filter for human-friendly relative time (past/future)
-
-## 1.0.0 - 2025-11-07
-- Initial release with Twig filters: `jazykolam_plural`, `jazykolam_month`
+- Relative time filter `|jazykolam_time`

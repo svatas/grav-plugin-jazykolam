@@ -1,126 +1,30 @@
 
-# Default configuration for Jazykolam
+# v1.3.0
 enabled: true
-# Force locale (e.g., 'cs'); leave empty to use active Grav language
 default_locale: ''
-# If true, prefer values found in site languages.yaml over plugin config
 prefer_languages_yaml: true
 
-# Automatic overrides so it works without changing Twig templates
 auto_override:
-  t: true         # override |t, |tu, |tl to add plural/ICU-lite support
-  nicetime: true  # override |nicetime to use jazykolam_time
+  t: true
+  nicetime: true
+  gantry: true   # also register filters & overrides into Gantry's Twig (if Gantry is present)
 
 locales:
   en:
-    plural:
-      order: [one, other]
-    months:
-      long:
-        1: January
-        2: February
-        3: March
-        4: April
-        5: May
-        6: June
-        7: July
-        8: August
-        9: September
-        10: October
-        11: November
-        12: December
-      short:
-        1: Jan
-        2: Feb
-        3: Mar
-        4: Apr
-        5: May
-        6: Jun
-        7: Jul
-        8: Aug
-        9: Sep
-        10: Oct
-        11: Nov
-        12: Dec
+    plural: { order: [one, other] }
+    months: { }
     relative:
       now: just now
       past:
-        second: { one: a second ago, other: {{count}} seconds ago }
-        minute: { one: a minute ago, other: {{count}} minutes ago }
-        hour:   { one: an hour ago,  other: {{count}} hours ago }
-        day:    { one: a day ago,    other: {{count}} days ago }
-        week:   { one: a week ago,   other: {{count}} weeks ago }
-        month:  { one: a month ago,  other: {{count}} months ago }
-        year:   { one: a year ago,   other: {{count}} years ago }
+        minute: { one: a minute ago, other: '{{count}} minutes ago' }
       future:
-        second: { one: in a second,  other: in {{count}} seconds }
-        minute: { one: in a minute,  other: in {{count}} minutes }
-        hour:   { one: in an hour,   other: in {{count}} hours }
-        day:    { one: in a day,     other: in {{count}} days }
-        week:   { one: in a week,    other: in {{count}} weeks }
-        month:  { one: in a month,   other: in {{count}} months }
-        year:   { one: in a year,    other: in {{count}} years }
+        minute: { one: in a minute, other: 'in {{count}} minutes' }
   cs:
-    plural:
-      order: [one, few, other]
-    months:
-      long:
-        1: leden
-        2: únor
-        3: březen
-        4: duben
-        5: květen
-        6: červen
-        7: červenec
-        8: srpen
-        9: září
-        10: říjen
-        11: listopad
-        12: prosinec
-      short:
-        1: led
-        2: úno
-        3: bře
-        4: dub
-        5: kvě
-        6: čvn
-        7: čvc
-        8: srp
-        9: zář
-        10: říj
-        11: lis
-        12: pro
-      genitive:
-        1: ledna
-        2: února
-        3: března
-        4: dubna
-        5: května
-        6: června
-        7: července
-        8: srpna
-        9: září
-        10: října
-        11: listopadu
-        12: prosince
+    plural: { order: [one, few, other] }
+    months: { }
     relative:
       now: právě teď
       past:
-        second: { one: sekundou,  few: {{count}} sekundami,  other: {{count}} sekundami }
-        minute: { one: minutou,   few: {{count}} minutami,   other: {{count}} minutami }
-        hour:   { one: hodinou,   few: {{count}} hodinami,   other: {{count}} hodinami }
-        day:    { one: včera,     few: {{count}} dny,        other: {{count}} dny }
-        week:   { one: týdnem,    few: {{count}} týdny,      other: {{count}} týdny }
-        month:  { one: měsícem,   few: {{count}} měsíci,     other: {{count}} měsíci }
-        year:   { one: rokem,     few: {{count}} roky,       other: {{count}} lety }
+        minute: { one: minutou, few: '{{count}} minutami', other: '{{count}} minutami' }
       future:
-        second: { one: sekundu,   few: {{count}} sekundy,    other: {{count}} sekund }
-        minute: { one: minutu,    few: {{count}} minuty,     other: {{count}} minut }
-        hour:   { one: hodinu,    few: {{count}} hodiny,     other: {{count}} hodin }
-        day:    { one: zítra,     few: {{count}} dny,        other: {{count}} dní }
-        week:   { one: týden,     few: {{count}} týdny,      other: {{count}} týdnů }
-        month:  { one: měsíc,     few: {{count}} měsíce,     other: {{count}} měsíců }
-        year:   { one: rok,       few: {{count}} roky,       other: {{count}} let }
-  pl:
-    plural:
-      order: [one, few, many, other]
+        minute: { one: minutu, few: '{{count}} minuty', other: '{{count}} minut' }
