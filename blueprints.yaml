@@ -1,10 +1,9 @@
-
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.4.0
+version: 1.5.0
 schema: 1.0.0
-description: i18n Twig filters with per-render locale, DEBUG markers/panel/console, Gantry 5 integration, and auto-injected panel.
+description: i18n Twig filters with per-render locale, DEBUG markers/panel/console, Gantry 5 integration, and auto-injected panel (smart mode).
 icon: language
 license: MIT
 
@@ -60,11 +59,39 @@ form:
           label: Enable DEBUG markers
           default: 0
           options: { 1: Enabled, 0: Disabled }
+
         debug.inject:
+          type: select
+          label: Auto-inject panel & console
+          default: false
+          options:
+            false: Disabled
+            true: Enabled (always)
+            smart: Smart (only authenticated Admin)
+
+        debug.inject_exclude_routes:
+          type: list
+          label: Exclude routes (regex)
+          placeholder: '^/api/'
+
+        debug.inject_block_bots:
           type: toggle
-          label: Auto-inject panel & console (onOutputGenerated)
-          default: 0
-          options: { 1: Enabled, 0: Disabled }
+          label: Skip known bots (User-Agent)
+          default: 1
+          options: { 1: Yes, 0: No }
+
+        debug.inject_skip_json:
+          type: toggle
+          label: Skip JSON responses (Accept/Content-Type)
+          default: 1
+          options: { 1: Yes, 0: No }
+
+        debug.inject_skip_xhr:
+          type: toggle
+          label: Skip XHR (XMLHttpRequest)
+          default: 1
+          options: { 1: Yes, 0: No }
+
         debug.mode:
           type: select
           label: Mode
@@ -93,3 +120,8 @@ form:
           label: Export to browser console (console.table)
           default: 0
           options: { 1: Enabled, 0: Disabled }
+        debug.copy_curl:
+          type: toggle
+          label: Show "Copy as cURL" button
+          default: 1
+          options: { 1: Yes, 0: No }

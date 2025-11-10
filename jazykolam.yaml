@@ -1,5 +1,4 @@
-
-# v1.4.0
+# v1.5.0
 enabled: true
 default_locale: ''
 prefer_languages_yaml: true
@@ -12,10 +11,15 @@ auto_override:
 # Debug settings
 debug:
   enabled: false
-  inject: false         # NEW: auto-inject panel+console via onOutputGenerated
+  inject: false         # false | true | smart
+  inject_exclude_routes: [ '^/api/', '^/feed' ]
+  inject_block_bots: true
+  inject_skip_json: true
+  inject_skip_xhr: true
   mode: inline          # inline | wrap
   marker_prefix: '‹JL:'
   marker_suffix: '›'
   badge: 'JL'
   max_entries: 200
   console: false
+  copy_curl: true
