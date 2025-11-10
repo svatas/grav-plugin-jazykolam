@@ -176,3 +176,12 @@ Experimentální funkce pro rychlou úpravu překladů přímo na frontendu.
 - pouze přihlášený uživatel s povolenou rolí může cokoliv uložit,
 - požadavek je chráněn nonce tokenem,
 - pro běžné návštěvníky je funkce neaktivní a nevkládá žádný JavaScript.
+
+
+## 🧩 Rozšířený Translation Manager (od verze 1.6.3)
+
+- Filtrování podle klíče i textu překladu.
+- Přepínač pro zobrazení pouze klíčů s chybějícími překlady.
+- Automatické načtení klíčů z Twig šablon (themes/plugins), aby bylo vidět, co chybí.
+- Možnost přidat nový klíč přímo z tabulky.
+- Před uložením se provede záloha `user/languages.jazykolam.yaml` jako `.bak` soubor.

@@ -176,3 +176,12 @@ Experimental feature to edit translations directly on the frontend.
 - only logged-in users with allowed roles may save,
 - requests are protected with a nonce,
 - for normal visitors the feature is completely inactive and no extra JS is injected.
+
+
+## 🧩 Extended Translation Manager (since 1.6.3)
+
+- Filter by key and translated text.
+- Toggle to show only keys with missing translations.
+- Automatically lists keys discovered in Twig templates (themes/plugins) to highlight gaps.
+- Dedicated row to add new keys directly from the table.
+- A backup of `user/languages.jazykolam.yaml` is created as `.bak` before saving.

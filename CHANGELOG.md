@@ -101,3 +101,19 @@ Všechny významné změny v tomto projektu jsou popsány v tomto souboru.
 ### Poznámka
 - Inline editor je defaultně vypnutý a nemá vliv na výkon běžného webu.
 
+## [1.6.3] – 2025-11-09
+### Přidáno
+- Rozšířený **Translation Manager** v Admin rozhraní:
+  - filtrování klíčů podle textu,
+  - přepínač „Pouze klíče s chybějícím překladem“,
+  - automatická detekce klíčů použitých v Twig šablonách,
+  - řádek pro snadné přidání nového klíče přímo z UI.
+- Před uložením změn do `user/languages.jazykolam.yaml` se automaticky vytvoří záložní `.bak` soubor.
+
+### Změněno
+- Datový model v Admin UI nyní zahrnuje i klíče nalezené v šablonách, které dosud nemají překlad.
+- Všechny změny jsou nadále omezeny pouze na soubor `languages.jazykolam.yaml` – jádro Gravu ani jiné pluginy nejsou upravovány.
+
+### Poznámka
+- Inline editor na frontendu zůstává experimentální a je výchozím nastavením vypnutý.
+

@@ -101,3 +101,19 @@ All notable changes to this project are documented here.
 ### Note
 - Inline editor is disabled by default and has no impact on normal site visitors.
 
+## [1.6.3] – 2025-11-09
+### Added
+- Enhanced **Translation Manager** in the Admin panel:
+  - text filter for keys and values,
+  - toggle to show only keys with missing translations,
+  - automatic discovery of translation keys used in Twig templates,
+  - a dedicated row to add a new key directly from the UI.
+- Automatic backup of `user/languages.jazykolam.yaml` to a timestamped `.bak` file before saving.
+
+### Changed
+- Admin data model now also includes keys found in templates even if they are not yet translated.
+- All writes remain scoped strictly to `languages.jazykolam.yaml`; Grav core and other plugins are not modified.
+
+### Note
+- Frontend inline editor remains experimental and disabled by default.
+

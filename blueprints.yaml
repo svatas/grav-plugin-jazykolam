@@ -1,7 +1,7 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.6.2
+version: 1.6.3
 schema: 1.0.0
 description: i18n Twig filters with per-render locale, DEBUG markers/panel/console, Gantry 5 integration, and auto-injected panel (smart mode).
 icon: language
