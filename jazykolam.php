@@ -24,7 +24,6 @@ class JazykolamPlugin extends Plugin
         $env = $twig->twig();
         $env->addExtension($ext);
 
-        // Auto overrides in Grav Twig
         $cfg = (array)$this->config->get('plugins.jazykolam.auto_override');
         if (!empty($cfg['t'])) {
             $env->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
@@ -40,7 +39,6 @@ class JazykolamPlugin extends Plugin
 
     public function onThemeInitialized(): void
     {
-        // ensure Gantry registration even if Gantry initializes later
         if (class_exists('JazykolamTwigExtension', false)) {
             $ext = new \JazykolamTwigExtension($this->grav);
             $this->maybeRegisterGantry($ext);
@@ -56,19 +54,20 @@ class JazykolamPlugin extends Plugin
         try {
             $gantry = \Gantry\Framework\Gantry::instance();
             if (!$gantry || !isset($gantry['theme'])) return;
-            $renderer = $gantry['theme']->renderer(); // Twig Environment
-            // Explicit filters
+            $renderer = $gantry['theme']->renderer();
+            // Filters
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_plural', [$ext, 'pluralFilter']));
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_month', [$ext, 'monthFilter']));
             $renderer->addFilter(new \Twig\TwigFilter('jazykolam_time', [$ext, 'timeFilter']));
-            // Functions
-            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_set_locale', [$ext, 'setLocaleFunction']));
-            // Auto overrides & aliases
             $renderer->addFilter(new \Twig\TwigFilter('t', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('tu', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('tl', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('trans', [$ext, 'autoT'], ['is_variadic' => true]));
             $renderer->addFilter(new \Twig\TwigFilter('nicetime', [$ext, 'autoNicetime']));
+            // Functions
+            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_set_locale', [$ext, 'setLocaleFunction']));
+            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_debug', [$ext, 'debugFunction'], ['is_safe' => ['html']]));
+            $renderer->addFunction(new \Twig\TwigFunction('jazykolam_debug_panel', [$ext, 'debugPanelFunction'], ['is_safe' => ['html']]));
         } catch (\Throwable $e) {
             // ignore
         }

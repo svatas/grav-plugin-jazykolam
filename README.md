@@ -1,27 +1,34 @@
 
-# Jazykolam 1.3.1
+# Jazykolam 1.3.2 — DEBUG helpers
 
-**What’s new**
-- Twig **function**: `jazykolam_set_locale(locale)` — set per-render locale override for all Jazykolam filters and auto `|nicetime`.
-- Registered into **Gantry 5** Twig renderer (filters + function + overrides), so it works inside **particles** without template edits.
+**New:**
+- `jazykolam_debug(value, meta={})` — wrap any output with inline DEBUG marker (with data attributes: key, locale, source).
+- `jazykolam_debug_panel()` — floating table listing last translations resolved by Jazykolam.
+- Markers automatically added when `debug.enabled: true` **or** URL has `?jazykolam_debug=1`.
 
-## Usage
+## Examples
 ```twig
 {{ jazykolam_set_locale('cs') }}
-{{ -3600|nicetime }}         {# => před 1 hodinou (with auto override) #}
-{{ 11|jazykolam_month('genitive') }}  {# => listopadu #}
-{{ n|jazykolam_plural({'one':'soubor','few':'soubory','other':'souborů'}) }}
+{{ 'JAZYKOLAM.FILE'|t({count: 3}) }}
+{{ jazykolam_debug_panel() }}
 ```
 
-## Configuration
+**Inline mode** adds visible markers like `‹JL:…›` and a small `JL` badge. Elements have attributes:
+`data-jl-source`, `data-jl-key`, `data-jl-locale` — handy for DOM search or QA.
+
+## Config (snippet)
 ```yaml
-auto_override:
-  t: true
-  nicetime: true
-  gantry: true
-# default_locale: cs  # force locale globally
+debug:
+  enabled: false
+  mode: inline     # inline | wrap
+  marker_prefix: '‹JL:'
+  marker_suffix: '›'
+  badge: 'JL'
+  max_entries: 200
 ```
+
+## Panel
+Place `{{ jazykolam_debug_panel() }}` somewhere in your base template (or enable via a debug-only partial). Toggle is built in.
 
 ## Gantry 5
-The plugin detects Gantry and registers all filters and the `jazykolam_set_locale` function into its Twig renderer.
-No template edits needed — particles can call the function and filters directly.
+Both functions and filters are registered into Gantry Twig, so particles can use them directly. No template edits needed when auto overrides are enabled.

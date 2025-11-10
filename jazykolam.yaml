@@ -1,5 +1,5 @@
 
-# v1.3.1
+# v1.3.2
 enabled: true
 default_locale: ''
 prefer_languages_yaml: true
@@ -8,6 +8,15 @@ auto_override:
   t: true
   nicetime: true
   gantry: true
+
+# Debug settings
+debug:
+  enabled: false          # true to always enable debug markers
+  mode: inline            # inline | wrap
+  marker_prefix: '‹JL:'   # used in inline mode
+  marker_suffix: '›'
+  badge: 'JL'             # small badge after the string
+  max_entries: 200        # collected entries for debug panel
 
 locales:
   en:

@@ -2,9 +2,9 @@
 name: Jazykolam
 slug: jazykolam
 type: plugin
-version: 1.3.1
+version: 1.3.2
 schema: 1.0.0
-description: Advanced i18n filters (pluralization, months, relative time) with Twig function to set per-render locale. Gantry 5 integration included.
+description: Advanced i18n filters with per-render locale and DEBUG helpers (markers + panel). Gantry 5 integration included.
 icon: language
 license: MIT
 
@@ -49,3 +49,36 @@ form:
           label: Register into Gantry Twig (if available)
           default: 1
           options: { 1: Yes, 0: No }
+
+    debug:
+      type: fieldset
+      title: Debug
+      collapsed: true
+      fields:
+        debug.enabled:
+          type: toggle
+          label: Enable DEBUG markers
+          default: 0
+          options: { 1: Enabled, 0: Disabled }
+        debug.mode:
+          type: select
+          label: Mode
+          options:
+            inline: Inline markers (‹JL:…›)
+            wrap: Wrap only (no prefix/suffix)
+        debug.marker_prefix:
+          type: text
+          label: Marker prefix
+          default: '‹JL:'
+        debug.marker_suffix:
+          type: text
+          label: Marker suffix
+          default: '›'
+        debug.badge:
+          type: text
+          label: Badge label
+          default: 'JL'
+        debug.max_entries:
+          type: number
+          label: Max entries in panel
+          default: 200
