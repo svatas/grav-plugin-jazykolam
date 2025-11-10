@@ -13,3 +13,6 @@ Tento dokument shrnuje plánované a doporučené funkce pro další verze Jazyk
 
 Konfigurace přidaná ve verzi 1.6.0 je připravená tak,
 aby tyto funkce bylo možné postupně aktivovat bez změny základní struktury pluginu.
+
+
+- 1.6.2: první veřejná verze inline editoru (experimentální, pouze pro adminy s parametrem ?jazykolam_inline=1).
